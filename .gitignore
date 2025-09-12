@@ -205,3 +205,22 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+.DS_Store
+
+# API Keys and secrets (Paper Voice specific)
+*.key
+api_key.txt
+openai_key.txt
+.env.local
+.env.*.local
+
+# Audio files generated during testing
+*.wav
+*.mp3
+*.m4a
+*.flac
+
+# Test outputs
+test_output/
+demo_output/
+audio_output/
