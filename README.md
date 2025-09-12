@@ -58,4 +58,8 @@ There are several Streamlit applications available:
 
 ## Examples
 
-See the `demos/` directory for usage examples and the `tests/` directory for test cases.
+See the `demos/` directory for usage examples:
+- `demos/basic_usage.py` - Simple math processing examples
+- `demos/before_after_comparison.py` - Shows improvement from LLM explanations
+
+See the `tests/` directory for test cases.
