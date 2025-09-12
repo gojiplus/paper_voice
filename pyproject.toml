@@ -8,6 +8,9 @@ version = "0.1.0"
 description = "Convert academic PDFs to spoken audio, handling math, tables and figures"
 readme = "README.md"
 requires-python = ">=3.8"
+authors = [
+    {name = "Gaurav Sood", email = "gsood07@gmail.com"}
+]
 dependencies = [
     "streamlit>=1.30.0",
     "PyPDF2>=3.0.1",
@@ -18,9 +21,9 @@ dependencies = [
 ]
 
 [project.urls]
-homepage = "https://example.com"
-repository = "https://example.com"
-documentation = "https://example.com/docs"
+homepage = "https://github.com/gojiplus/paper_voice"
+repository = "https://github.com/gojiplus/paper_voice"
+documentation = "https://gojiplus.github.io/paper_voice"
 
 [tool.setuptools.packages.find]
 where = ["."]
