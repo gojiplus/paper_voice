@@ -38,19 +38,34 @@ def download_arxiv_pdf(arxiv_id: str, dest_path: str) -> Optional[str]:
     import requests
     
     # Extract ID from URL if needed
-    id_match = re.search(r"(?:abs|pdf)/([\\d\\.]+)(?:\\.pdf)?", arxiv_id)
+    # Handle formats like: https://arxiv.org/abs/2508.21038 or https://arxiv.org/pdf/2508.21038.pdf
+    id_match = re.search(r"(?:abs|pdf)/(\d+\.\d+)(?:\.pdf)?", arxiv_id)
     if id_match:
         arxiv_id = id_match.group(1)
     
-    url = f"https://arxiv.org/pdf/{arxiv_id}.pdf"
-    try:
-        resp = requests.get(url, timeout=10)
-        if resp.status_code == 200:
-            with open(dest_path, 'wb') as f:
-                f.write(resp.content)
-            return dest_path
-    except Exception:
-        pass
+    # Try multiple URLs for better compatibility
+    urls_to_try = [
+        f"https://arxiv.org/pdf/{arxiv_id}.pdf",
+        f"https://export.arxiv.org/pdf/{arxiv_id}.pdf",
+    ]
+    
+    for url in urls_to_try:
+        try:
+            resp = requests.get(url, timeout=30, headers={
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            })
+            
+            if resp.status_code == 200:
+                # Check if it's actually a PDF (not an error page)
+                content = resp.content
+                if len(content) > 1000 and content.startswith(b'%PDF'):
+                    with open(dest_path, 'wb') as f:
+                        f.write(content)
+                    return dest_path
+                    
+        except Exception:
+            continue
+    
     return None
 
 
@@ -58,7 +73,15 @@ def extract_pdf_content(pdf_path: str) -> str:
     """Extract text content from PDF."""
     try:
         pages = pdf_utils.extract_raw_text(pdf_path)
-        return "\\n\\n".join(pages)
+        # Clean up the text and join with proper spacing
+        cleaned_pages = []
+        for page in pages:
+            # Remove excessive whitespace and normalize line breaks
+            cleaned = re.sub(r'\n+', '\n', page.strip())  # Multiple newlines to single
+            cleaned = re.sub(r' +', ' ', cleaned)  # Multiple spaces to single
+            cleaned_pages.append(cleaned)
+        
+        return "\n\n".join(cleaned_pages)
     except Exception as e:
         return f"Error extracting PDF content: {str(e)}"
 
@@ -422,7 +445,12 @@ def main():
                             input_type = "PDF"
                             os.unlink(tmp.name)
                         else:
-                            st.error("❌ Failed to download from arXiv. Check the ID/URL.")
+                            # Extract ID for better error message
+                            id_match = re.search(r"(?:abs|pdf)/(\d+\.\d+)(?:\.pdf)?", arxiv_input.strip())
+                            arxiv_id = id_match.group(1) if id_match else arxiv_input.strip()
+                            st.error(f"❌ Failed to download from arXiv. Paper ID: {arxiv_id}")
+                            st.info("💡 Try again in a few minutes - arXiv servers may be temporarily unavailable.")
+                            st.info("🔍 You can also try uploading the PDF directly if you have it downloaded.")
                             return
                             
             elif input_method == "Direct Text Input" and direct_text.strip():
@@ -465,8 +493,7 @@ def main():
                                 audio_path,
                                 use_openai=True,
                                 api_key=api_key,
-                                openai_voice=openai_voice,
-                                openai_speed=speech_speed
+                                openai_voice=openai_voice
                             )
                         else:
                             output_file = tts.synthesize_speech(
