@@ -7,7 +7,7 @@ name = "paper_voice"
 version = "0.1.0"
 description = "Convert academic PDFs to spoken audio, handling math, tables and figures"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9,!=3.9.7"
 authors = [
     {name = "Gaurav Sood", email = "gsood07@gmail.com"}
 ]

@@ -44,7 +44,7 @@ print(processed)
 
 ## Requirements
 
-- Python 3.8+
+- Python 3.9+ (excluding 3.9.7)
 - OpenAI API key (optional, for enhanced math explanations)
 - ffmpeg (for audio processing)
 
