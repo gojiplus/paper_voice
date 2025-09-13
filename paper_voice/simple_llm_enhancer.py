@@ -97,6 +97,8 @@ Convert this entire document into clear, natural audio narration text:"""
         
         if progress_callback:
             progress_callback(f"Using max_tokens={max_output_tokens} for this request...")
+            progress_callback(f"Prompt length: {len(prompt):,} chars, Content length: {len(content):,} chars")
+            progress_callback("🚀 Making API call to OpenAI...")
             
         response = client.chat.completions.create(
             model="gpt-4o",
@@ -112,7 +114,7 @@ Convert this entire document into clear, natural audio narration text:"""
             ],
             temperature=0.1,
             max_tokens=max_output_tokens,
-            timeout=120  # 2 minute timeout
+            timeout=60  # 1 minute timeout
         )
         
         result = response.choices[0].message.content.strip()
@@ -156,37 +158,50 @@ def enhance_with_intelligent_chunking(content: str, api_key: str, progress_callb
     """
     Intelligent chunking based on actual OpenAI token limits.
     
-    - GPT-4o: 128,000 tokens total (input + output)
-    - We reserve 50,000 tokens for output, leaving ~78,000 for input
-    - This means each chunk can be ~234,000 characters (78k tokens * 3 chars/token)
+    - GPT-4o: 128,000 tokens total (input + output)  
+    - Reserve ~50,000 tokens for output, leaving ~78,000 for input
+    - Each chunk: ~60,000 input tokens max = ~180,000 characters
     """
     
     if progress_callback:
-        progress_callback("Using intelligent chunking based on OpenAI limits...")
+        progress_callback("Using intelligent chunking based on OpenAI API limits...")
     
     client = OpenAI(api_key=api_key)
     
-    # Conservative chunking: 70,000 input tokens max per chunk (210,000 chars)
-    MAX_CHUNK_TOKENS = 70000
-    MAX_CHUNK_CHARS = MAX_CHUNK_TOKENS * 3  # 210,000 characters
+    # Conservative chunking for GPT-4o: 60,000 input tokens max per chunk
+    MAX_CHUNK_TOKENS = 60000
+    MAX_CHUNK_CHARS = MAX_CHUNK_TOKENS * 3  # ~180,000 characters
+    
+    if progress_callback:
+        progress_callback(f"Max chunk size: {MAX_CHUNK_CHARS:,} chars (~{MAX_CHUNK_TOKENS:,} tokens)")
     
     # Split content into appropriately sized chunks
     chunks = []
     current_pos = 0
     
     while current_pos < len(content):
-        # Find a good breaking point near the limit
+        # Calculate end position
         end_pos = min(current_pos + MAX_CHUNK_CHARS, len(content))
         
+        # If not at the end, find a good breaking point
         if end_pos < len(content):
-            # Look for a good break point (paragraph, section, etc.)
             chunk_text = content[current_pos:end_pos]
             
-            # Try to break at section boundaries first
-            for break_pattern in ['\n\\section{', '\n\\subsection{', '\n\n\n', '\n\n']:
-                last_break = chunk_text.rfind(break_pattern)
-                if last_break > MAX_CHUNK_CHARS * 0.7:  # At least 70% of max size
-                    end_pos = current_pos + last_break
+            # Try to break at natural boundaries (in order of preference)
+            break_patterns = [
+                '\n\\section{',      # LaTeX sections
+                '\n\\subsection{',  # LaTeX subsections  
+                '\n\\begin{',       # LaTeX environments
+                '\n\n\n',          # Triple newlines
+                '\n\n',            # Double newlines (paragraphs)
+                '. ',              # Sentence endings
+                ', ',              # Comma breaks
+            ]
+            
+            for pattern in break_patterns:
+                last_break = chunk_text.rfind(pattern)
+                if last_break > MAX_CHUNK_CHARS * 0.6:  # At least 60% of max size
+                    end_pos = current_pos + last_break + len(pattern)
                     break
         
         chunk = content[current_pos:end_pos].strip()
@@ -196,27 +211,54 @@ def enhance_with_intelligent_chunking(content: str, api_key: str, progress_callb
         current_pos = end_pos
     
     if progress_callback:
-        progress_callback(f"Split into {len(chunks)} intelligent chunks (avg {len(content)//len(chunks):,} chars each)")
+        progress_callback(f"Split into {len(chunks)} chunks (sizes: {[len(c) for c in chunks][:5]}{'...' if len(chunks) > 5 else ''})")
     
     enhanced_chunks = []
     
-    # Process each chunk with the full comprehensive prompt
+    # Process each chunk with comprehensive enhancement
     for i, chunk in enumerate(chunks):
+        chunk_tokens = len(chunk) // 3
         if progress_callback:
-            progress_callback(f"Processing chunk {i+1}/{len(chunks)} ({len(chunk):,} chars)...")
+            progress_callback(f"Processing chunk {i+1}/{len(chunks)} ({len(chunk):,} chars, ~{chunk_tokens:,} tokens)...")
         
         try:
-            # Use the same comprehensive prompt as single-call approach
-            enhanced_chunk = enhance_with_simple_llm(chunk, api_key, None)  # No nested progress
+            # Each chunk gets the full enhancement treatment
+            enhanced_chunk = enhance_with_simple_llm(chunk, api_key, None)
             enhanced_chunks.append(enhanced_chunk)
+            
+            if progress_callback:
+                progress_callback(f"✅ Chunk {i+1}/{len(chunks)} completed successfully")
             
         except Exception as e:
             if progress_callback:
-                progress_callback(f"FATAL: Failed to enhance chunk {i+1}: {str(e)}")
-            # RAISE error instead of silently failing
-            raise Exception(f"Chunk enhancement failed for chunk {i+1}: {str(e)}")
+                progress_callback(f"❌ Chunk {i+1}/{len(chunks)} failed: {str(e)}")
+            
+            # If individual chunk fails, we need to handle it
+            if "context_length_exceeded" in str(e):
+                # Chunk is still too big - try to split it further
+                if progress_callback:
+                    progress_callback(f"Chunk {i+1} too large, attempting to split further...")
+                
+                try:
+                    # Recursively chunk this piece
+                    sub_enhanced = enhance_with_intelligent_chunking(chunk, api_key, None)
+                    enhanced_chunks.append(sub_enhanced)
+                    
+                    if progress_callback:
+                        progress_callback(f"✅ Chunk {i+1} completed via sub-chunking")
+                        
+                except Exception as sub_e:
+                    raise Exception(f"Chunk {i+1} failed even after sub-chunking: {str(sub_e)}")
+            else:
+                # Some other error - propagate it
+                raise Exception(f"Chunk {i+1} enhancement failed: {str(e)}")
     
-    return '\n\n'.join(enhanced_chunks)
+    final_result = '\n\n'.join(enhanced_chunks)
+    
+    if progress_callback:
+        progress_callback(f"✅ All {len(chunks)} chunks processed successfully! Final length: {len(final_result):,} chars")
+    
+    return final_result
 
 
 def enhance_with_chunking_fallback(content: str, api_key: str, progress_callback=None) -> str:
@@ -306,6 +348,6 @@ def enhance_document_simple(content: str, api_key: str, progress_callback=None) 
         return enhance_with_simple_llm(content, api_key, progress_callback)
     else:
         if progress_callback:
-            progress_callback(f"Content too large ({total_estimated_tokens:,} tokens > {GPT4O_TOKEN_LIMIT:,} limit). Using intelligent chunking with SINGLE call per chunk...")
+            progress_callback(f"Content too large ({total_estimated_tokens:,} tokens > {GPT4O_TOKEN_LIMIT:,} limit). Using intelligent chunking...")
         
         return enhance_with_intelligent_chunking(content, api_key, progress_callback)
