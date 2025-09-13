@@ -8,10 +8,14 @@ into crystal-clear natural language that listeners can easily understand.
 import os
 import re
 import tempfile
+import warnings
 from pathlib import Path
 from typing import Optional, List, Dict, Any, Tuple
 
 import streamlit as st
+
+# Filter out pydub SyntaxWarnings for Python 3.13+ compatibility
+warnings.filterwarnings("ignore", category=SyntaxWarning, module="pydub.utils")
 
 # Import our modules
 try:
@@ -71,7 +75,7 @@ def download_arxiv_pdf(arxiv_id: str, dest_path: str) -> Optional[str]:
     return None
 
 
-def extract_pdf_content(pdf_path: str, use_vision: bool = False, api_key: str = None) -> str:
+def extract_pdf_content(pdf_path: str, use_vision: bool = False, api_key: str = None, show_debug: bool = False) -> str:
     """Extract text content from PDF."""
     try:
         if use_vision and api_key:
@@ -83,6 +87,10 @@ def extract_pdf_content(pdf_path: str, use_vision: bool = False, api_key: str = 
                 analysis_result = analyze_pdf_with_vision(pdf_path, api_key, max_pages=10)  # Limit to 10 pages for cost
                 
                 enhanced_text = create_enhanced_text_from_analysis(analysis_result)
+                
+                # Debug: Show content length
+                if show_debug:
+                    st.info(f"📄 Vision analysis extracted {len(enhanced_text)} characters")
                 
                 # Show analysis summary
                 st.success(f"✅ Vision analysis complete: {len(analysis_result.content_blocks)} content blocks found")
@@ -99,26 +107,49 @@ def extract_pdf_content(pdf_path: str, use_vision: bool = False, api_key: str = 
         
         # Standard PDF text extraction
         pages = pdf_utils.extract_raw_text(pdf_path)
+        
+        # Debug: Show raw extraction results
+        total_raw_chars = sum(len(page) for page in pages)
+        if show_debug:
+            st.info(f"📄 Standard extraction: {len(pages)} pages, {total_raw_chars} total characters")
+        
         # Clean up the text and join with proper spacing
         cleaned_pages = []
-        for page in pages:
+        for i, page in enumerate(pages):
             # Remove excessive whitespace and normalize line breaks
             cleaned = re.sub(r'\n+', '\n', page.strip())  # Multiple newlines to single
             cleaned = re.sub(r' +', ' ', cleaned)  # Multiple spaces to single
             cleaned_pages.append(cleaned)
+            
+            # Debug: Show first few characters of each page
+            if show_debug and len(cleaned) > 0:
+                preview = cleaned[:100] + "..." if len(cleaned) > 100 else cleaned
+                st.info(f"Page {i+1} preview ({len(cleaned)} chars): {preview}")
         
-        return "\n\n".join(cleaned_pages)
+        result = "\n\n".join(cleaned_pages)
+        if show_debug:
+            st.info(f"📄 Final cleaned content: {len(result)} characters")
+        
+        return result
     except Exception as e:
-        return f"Error extracting PDF content: {str(e)}"
+        error_msg = f"Error extracting PDF content: {str(e)}"
+        st.error(error_msg)
+        return error_msg
 
 
-def enhance_content_with_llm(content: str, api_key: str, input_type: str = "text") -> str:
+def enhance_content_with_llm(content: str, api_key: str, input_type: str = "text", show_debug: bool = False) -> str:
     """Enhance content using unified backend processor."""
     try:
         from paper_voice.content_processor import process_content_unified
         
         if not api_key or api_key.strip() == "":
+            if show_debug:
+                st.warning("⚠️ No API key provided, skipping LLM enhancement")
             return content
+        
+        # Debug: Show input content length
+        if show_debug:
+            st.info(f"🔧 Processing {len(content)} characters with LLM enhancement (type: {input_type})")
         
         # Use unified processor - concentrates all logic in backend
         processed_doc = process_content_unified(
@@ -128,10 +159,32 @@ def enhance_content_with_llm(content: str, api_key: str, input_type: str = "text
             use_llm_enhancement=True
         )
         
+        # Debug: Show processed content length
+        enhanced_length = len(processed_doc.enhanced_text)
+        if show_debug:
+            st.info(f"✅ LLM processing complete: {enhanced_length} characters (vs {len(content)} input)")
+        
+        # Debug: Show content preview if it's different
+        if show_debug and enhanced_length != len(content):
+            with st.expander("🔍 Content Processing Details", expanded=False):
+                st.write(f"**Input type:** {input_type}")
+                st.write(f"**Input length:** {len(content)} characters")
+                st.write(f"**Output length:** {enhanced_length} characters")
+                st.write(f"**Has math:** {processed_doc.has_math}")
+                st.write(f"**Has figures:** {processed_doc.has_figures}")
+                st.write(f"**Has tables:** {processed_doc.has_tables}")
+                
+                if enhanced_length > 0:
+                    preview = processed_doc.enhanced_text[:500] + "..." if enhanced_length > 500 else processed_doc.enhanced_text
+                    st.text_area("Enhanced content preview:", preview, height=150)
+        
         return processed_doc.enhanced_text
     
     except Exception as e:
-        print(f"Content processing failed: {e}")
+        error_msg = f"Content processing failed: {e}"
+        st.error(error_msg)
+        import traceback
+        st.text(traceback.format_exc())
         return content
 
 
@@ -259,13 +312,18 @@ def process_figures_and_tables(content: str, api_key: str) -> Tuple[List[str], L
 
 
 def create_comprehensive_narration_script(content: str, input_type: str, api_key: str,
-                                        uploaded_images: List[Any] = None) -> str:
+                                        uploaded_images: List[Any] = None, show_debug: bool = False) -> str:
     """Create a comprehensive narration script with LLM explanations."""
     
     script_parts = []
     
     # Introduction
-    script_parts.append(f"This is a narration of the uploaded {input_type.lower()} document with enhanced mathematical explanations.")
+    intro = f"This is a narration of the uploaded {input_type.lower()} document with enhanced mathematical explanations."
+    script_parts.append(intro)
+    
+    # Debug: Show initial content length
+    if show_debug:
+        st.info(f"📝 Creating script from {len(content)} characters of {input_type} content")
     
     # Create progress tracking
     progress_bar = st.progress(0)
@@ -276,8 +334,13 @@ def create_comprehensive_narration_script(content: str, input_type: str, api_key
     
     # First enhance the content for better narration
     update_progress("Enhancing content for audio narration...")
-    enhanced_content = enhance_content_with_llm(content, api_key, input_type)
+    enhanced_content = enhance_content_with_llm(content, api_key, input_type, show_debug)
     progress_bar.progress(30)
+    
+    # Debug: Check if enhancement worked
+    if not enhanced_content or enhanced_content.strip() == "":
+        st.error("❌ Enhanced content is empty! Check content processing pipeline.")
+        return intro  # Return just the introduction
     
     # The enhanced_content already has all math, figures, tables processed
     # by the unified backend processor, so just use it directly
@@ -299,7 +362,13 @@ def create_comprehensive_narration_script(content: str, input_type: str, api_key
     progress_bar.empty()
     status_text.empty()
     
-    return "\\n\\n".join(script_parts)
+    final_script = "\\n\\n".join(script_parts)
+    
+    # Debug: Show final script statistics
+    if show_debug:
+        st.info(f"📋 Final script: {len(final_script)} characters, {len(script_parts)} sections")
+    
+    return final_script
 
 
 def main():
@@ -386,6 +455,12 @@ def main():
         "🔍 Use Vision AI for PDF Analysis",
         value=False,
         help="Use GPT-4V to analyze PDF layout and separate figures/math/tables (slower but higher quality)"
+    )
+    
+    show_debug_info = st.sidebar.checkbox(
+        "🐛 Show Debug Information",
+        value=True,
+        help="Show detailed processing steps and content previews"
     )
     
     # Audio options
@@ -478,7 +553,7 @@ def main():
                         # Save PDF temporarily and extract text
                         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
                             tmp.write(file.read())
-                            pdf_content = extract_pdf_content(tmp.name, use_vision=use_vision_pdf, api_key=api_key)
+                            pdf_content = extract_pdf_content(tmp.name, use_vision=use_vision_pdf, api_key=api_key, show_debug=show_debug_info)
                             all_content.append(f"=== {file.name} ===\\n{pdf_content}")
                             os.unlink(tmp.name)
                         input_type = "PDF"
@@ -529,10 +604,18 @@ def main():
                 st.warning("⚠️ No content found to process.")
                 return
             
+            # Show raw content preview if debug is enabled
+            if show_debug_info:
+                with st.expander("📄 Raw Extracted Content Preview", expanded=False):
+                    st.write(f"**Content type:** {input_type}")
+                    st.write(f"**Content length:** {len(content)} characters")
+                    preview_text = content[:1000] + "..." if len(content) > 1000 else content
+                    st.text_area("Raw content preview:", preview_text, height=200)
+            
             # Generate enhanced script
             with st.spinner("🧠 Creating enhanced narration with LLM explanations..."):
                 enhanced_script = create_comprehensive_narration_script(
-                    content, input_type, api_key, uploaded_images
+                    content, input_type, api_key, uploaded_images, show_debug_info
                 )
             
             # Display editable script
