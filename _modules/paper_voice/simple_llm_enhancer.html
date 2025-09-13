@@ -1,0 +1,514 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>paper_voice.simple_llm_enhancer &mdash; Paper Voice 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Paper Voice
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Paper Voice</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">paper_voice.simple_llm_enhancer</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for paper_voice.simple_llm_enhancer</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Simple LLM enhancer - just prompt + LLM, no manual processing.</span>
+
+<span class="sd">This module takes the entire document text and sends it to the LLM with </span>
+<span class="sd">a comprehensive prompt to convert math expressions to natural language</span>
+<span class="sd">and provide clear audio narration. No manual LaTeX processing.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">openai</span><span class="w"> </span><span class="kn">import</span> <span class="n">OpenAI</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
+
+
+<div class="viewcode-block" id="enhance_with_simple_llm">
+<a class="viewcode-back" href="../../index.html#paper_voice.simple_llm_enhancer.enhance_with_simple_llm">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">enhance_with_simple_llm</span><span class="p">(</span><span class="n">content</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">api_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">progress_callback</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Simple enhancement: just pass all text to LLM with comprehensive prompt.</span>
+<span class="sd">    </span>
+<span class="sd">    No manual LaTeX processing, no selective enhancement, no chunking.</span>
+<span class="sd">    Just send everything to LLM and let it handle the conversion.</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    content : str</span>
+<span class="sd">        The entire document text (LaTeX, PDF-extracted, etc.)</span>
+<span class="sd">    api_key : str</span>
+<span class="sd">        OpenAI API key</span>
+<span class="sd">    progress_callback : callable, optional</span>
+<span class="sd">        Progress callback function</span>
+<span class="sd">        </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str</span>
+<span class="sd">        Enhanced text ready for audio narration</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">api_key</span> <span class="ow">or</span> <span class="n">api_key</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">progress_callback</span><span class="p">:</span>
+            <span class="n">progress_callback</span><span class="p">(</span><span class="s2">&quot;No API key provided, returning original content&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">content</span>
+    
+    <span class="k">if</span> <span class="n">progress_callback</span><span class="p">:</span>
+        <span class="n">progress_callback</span><span class="p">(</span><span class="s2">&quot;Starting simple LLM enhancement...&quot;</span><span class="p">)</span>
+    
+    <span class="n">client</span> <span class="o">=</span> <span class="n">OpenAI</span><span class="p">(</span><span class="n">api_key</span><span class="o">=</span><span class="n">api_key</span><span class="p">)</span>
+    
+    <span class="c1"># One comprehensive prompt to handle everything</span>
+    <span class="n">prompt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;You are converting an academic paper into clear, natural audio narration. Your job is to take this raw document text and make it perfect for text-to-speech audio.</span>
+
+<span class="s2">CRITICAL REQUIREMENTS:</span>
+<span class="s2">1. Convert ALL mathematical expressions to clear natural language</span>
+<span class="s2">2. Replace complex tables with comprehensive spoken summaries</span>
+<span class="s2">3. Clean up all LaTeX commands and formatting artifacts</span>
+<span class="s2">4. Keep ALL content - don&#39;t summarize or skip anything</span>
+<span class="s2">5. Make everything flow naturally for audio narration</span>
+
+<span class="s2">MATHEMATICAL CONVERSION - Speak like a professor explaining at the board:</span>
+
+<span class="s2">SUBSCRIPTS AND NOTATION (explain meaning, not just symbols):</span>
+<span class="s2">- </span><span class="se">\\</span><span class="s2">(p_C</span><span class="se">\\</span><span class="s2">) → &quot;p underscore capital C, the proportion of compliers&quot; or &quot;the complier share&quot;</span>
+<span class="s2">- </span><span class="se">\\</span><span class="s2">(F_</span><span class="se">{{</span><span class="s2">1C</span><span class="se">}}\\</span><span class="s2">) → &quot;F underscore one capital C, the outcome distribution for treated compliers&quot; </span>
+<span class="s2">- </span><span class="se">\\</span><span class="s2">(F_</span><span class="se">{{</span><span class="s2">0C</span><span class="se">}}\\</span><span class="s2">) → &quot;F underscore zero capital C, the outcome distribution for control compliers&quot;</span>
+<span class="s2">- </span><span class="se">\\</span><span class="s2">(F_</span><span class="se">{{</span><span class="s2">Y|Z=z</span><span class="se">}}\\</span><span class="s2">) → &quot;the distribution of Y when the instrument takes value z&quot;</span>
+<span class="s2">- </span><span class="se">\\</span><span class="s2">(</span><span class="se">\\</span><span class="s2">hat</span><span class="se">{{\\</span><span class="s2">theta</span><span class="se">}}\\</span><span class="s2">) → &quot;theta-hat, our estimate of theta&quot; </span>
+<span class="s2">- </span><span class="se">\\</span><span class="s2">(X_i</span><span class="se">\\</span><span class="s2">) → &quot;X underscore i&quot; or &quot;X for individual i&quot;</span>
+<span class="s2">- </span><span class="se">\\</span><span class="s2">(</span><span class="se">\\</span><span class="s2">beta_1</span><span class="se">\\</span><span class="s2">) → &quot;beta underscore one, the treatment effect coefficient&quot;</span>
+<span class="s2">- </span><span class="se">\\</span><span class="s2">(e(X)</span><span class="se">\\</span><span class="s2">) → &quot;e of X, the probability that the instrument equals one given covariates X&quot;</span>
+<span class="s2">- </span><span class="se">\\</span><span class="s2">(p_z(X)</span><span class="se">\\</span><span class="s2">) → &quot;p underscore z of X, the expected treatment status when the instrument takes value z, given covariates X&quot;</span>
+
+<span class="s2">CAPITALIZATION AND VARIABLES (TTS cannot distinguish Z vs z):</span>
+<span class="s2">- </span><span class="se">\\</span><span class="s2">(Z = z</span><span class="se">\\</span><span class="s2">) → &quot;when the instrument capital-Z takes value lowercase-z&quot; or &quot;when the instrument takes value z&quot;</span>
+<span class="s2">- </span><span class="se">\\</span><span class="s2">(Z </span><span class="se">\\</span><span class="s2">in </span><span class="se">\\{{</span><span class="s2">0,1</span><span class="se">\\}}\\</span><span class="s2">) → &quot;the instrument takes values zero or one&quot;</span>
+<span class="s2">- Random variables: Use descriptive names (&quot;the instrument&quot; not just &quot;Z&quot;)</span>
+<span class="s2">- Specific values: &quot;when Z equals zero&quot; or &quot;under treatment assignment&quot;</span>
+
+<span class="s2">EQUATIONS AND RELATIONSHIPS (break into natural speech):</span>
+<span class="s2">- </span><span class="se">\\</span><span class="s2">(Y = </span><span class="se">\\</span><span class="s2">beta X + </span><span class="se">\\</span><span class="s2">epsilon</span><span class="se">\\</span><span class="s2">) → &quot;Y equals beta times X plus the error term epsilon&quot;</span>
+<span class="s2">- </span><span class="se">\\</span><span class="s2">(</span><span class="se">\\</span><span class="s2">sum_</span><span class="se">{{</span><span class="s2">i=1</span><span class="se">}}</span><span class="s2">^n X_i</span><span class="se">\\</span><span class="s2">) → &quot;the sum of X sub-i from i equals 1 to n&quot;</span>
+<span class="s2">- </span><span class="se">\\</span><span class="s2">(E[Y|X]</span><span class="se">\\</span><span class="s2">) → &quot;the expected value of Y given X&quot;</span>
+<span class="s2">- </span><span class="se">\\</span><span class="s2">(</span><span class="se">\\</span><span class="s2">frac</span><span class="se">{{</span><span class="s2">a</span><span class="se">}}{{</span><span class="s2">b</span><span class="se">}}\\</span><span class="s2">) → &quot;the ratio of a to b&quot; or &quot;a over b&quot;</span>
+
+<span class="s2">PROFESSOR-STYLE NARRATION:</span>
+<span class="s2">- First mention: &quot;Let p_C denote the proportion of compliers&quot;</span>
+<span class="s2">- Subsequent: &quot;the complier share&quot; or just &quot;p_C&quot;</span>
+<span class="s2">- Complex expressions: Break into meaningful parts</span>
+<span class="s2">- Estimates: &quot;our estimate of&quot; or &quot;the estimated value&quot;</span>
+<span class="s2">- Conditional notation: &quot;when&quot;, &quot;given that&quot;, &quot;conditional on&quot;</span>
+
+<span class="s2">CRITICAL EXAMPLES - Transform robotic to natural:</span>
+
+<span class="s2">WRONG (robotic): &quot;F subscript 1C and the estimated F subscript 0C&quot;</span>
+<span class="s2">RIGHT (natural): &quot;the outcome distributions for treated and control compliers&quot;</span>
+
+<span class="s2">WRONG: &quot;p subscript C times the difference between F subscript 1C of y and F subscript 0C of y&quot;  </span>
+<span class="s2">RIGHT: &quot;p underscore capital C, the complier share, times the difference in outcome distributions between treated and control compliers&quot;</span>
+
+<span class="s2">WRONG: &quot;the difference between F subscript Y given Z equals 1 and F subscript Y given Z equals 0&quot;</span>
+<span class="s2">RIGHT: &quot;the difference between outcome distributions under treatment assignment versus control assignment&quot;</span>
+
+<span class="s2">WRONG: &quot;Define e of X as the probability that Z equals one given X, p subscript z of X as the expected value of D given Z equals z and X&quot;</span>
+<span class="s2">RIGHT: &quot;Define e of X as the probability that the instrument equals one, conditional on covariates X. Define p underscore z of X as the expected treatment status when the instrument takes value z, conditional on covariates X&quot;</span>
+
+<span class="s2">CONTEXT-AWARE CONVERSION:</span>
+<span class="s2">First mention: &quot;Define p_C as the proportion of compliers in the population&quot;</span>
+<span class="s2">Later references: &quot;the complier share&quot; or &quot;this proportion&quot;</span>
+
+<span class="s2">TABLE PROCESSING:</span>
+<span class="s2">- Replace LaTeX table environments (</span><span class="se">\\</span><span class="s2">begin</span><span class="se">{{</span><span class="s2">tabular</span><span class="se">}}</span><span class="s2">, </span><span class="se">\\</span><span class="s2">begin</span><span class="se">{{</span><span class="s2">threeparttable</span><span class="se">}}</span><span class="s2">) with clear spoken descriptions</span>
+<span class="s2">- Example: &quot;Table shows regression results. The first column presents coefficients for the baseline model...&quot;</span>
+<span class="s2">- Include all key information from the table in narrative form</span>
+
+<span class="s2">LATEX CLEANUP:</span>
+<span class="s2">- </span><span class="se">\\</span><span class="s2">section</span><span class="se">{{</span><span class="s2">Introduction</span><span class="se">}}</span><span class="s2"> → &quot;Introduction&quot;</span>
+<span class="s2">- </span><span class="se">\\</span><span class="s2">subsection</span><span class="se">{{</span><span class="s2">Methods</span><span class="se">}}</span><span class="s2"> → &quot;Methods&quot;  </span>
+<span class="s2">- Remove </span><span class="se">\\</span><span class="s2">cite</span><span class="se">{{}}</span><span class="s2">, </span><span class="se">\\</span><span class="s2">ref</span><span class="se">{{}}</span><span class="s2">, </span><span class="se">\\</span><span class="s2">label</span><span class="se">{{}}</span><span class="s2"> commands</span>
+<span class="s2">- Remove </span><span class="se">\\</span><span class="s2">toprule, </span><span class="se">\\</span><span class="s2">midrule, </span><span class="se">\\</span><span class="s2">bottomrule</span>
+<span class="s2">- Clean up broken citations like &quot;bin1996</span><span class="se">}}</span><span class="s2">&quot;</span>
+<span class="s2">- Remove LaTeX environments but keep the content</span>
+
+<span class="s2">OUTPUT REQUIREMENTS:</span>
+<span class="s2">- Natural flowing text perfect for audio</span>
+<span class="s2">- No LaTeX commands remaining</span>
+<span class="s2">- All math in clear English</span>
+<span class="s2">- All tables described comprehensively  </span>
+<span class="s2">- Preserve the full content and meaning</span>
+<span class="s2">- Ready for text-to-speech conversion</span>
+
+<span class="s2">DOCUMENT TO CONVERT:</span>
+<span class="si">{</span><span class="n">content</span><span class="si">}</span>
+
+<span class="s2">Convert this entire document into clear, natural audio narration text:&quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">progress_callback</span><span class="p">:</span>
+            <span class="n">progress_callback</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Sending </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">content</span><span class="p">)</span><span class="si">}</span><span class="s2"> chars to LLM (may take 30-60 seconds)...&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Calculate appropriate max_tokens based on OpenAI limits</span>
+        <span class="n">estimated_input_tokens</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">content</span><span class="p">)</span> <span class="o">//</span> <span class="mi">3</span>  <span class="c1"># Rough estimate: 3 chars per token</span>
+        <span class="c1"># Reserve reasonable space for output (1.5x input, but cap at 16k which is GPT-4o max output)</span>
+        <span class="n">max_output_tokens</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mi">16384</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="mi">4000</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">estimated_input_tokens</span> <span class="o">*</span> <span class="mf">1.5</span><span class="p">)))</span>
+        
+        <span class="k">if</span> <span class="n">progress_callback</span><span class="p">:</span>
+            <span class="n">progress_callback</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Using max_tokens=</span><span class="si">{</span><span class="n">max_output_tokens</span><span class="si">}</span><span class="s2"> for this request...&quot;</span><span class="p">)</span>
+            <span class="n">progress_callback</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Prompt length: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">prompt</span><span class="p">)</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> chars, Content length: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">content</span><span class="p">)</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> chars&quot;</span><span class="p">)</span>
+            <span class="n">progress_callback</span><span class="p">(</span><span class="s2">&quot;🚀 Making API call to OpenAI...&quot;</span><span class="p">)</span>
+            
+        <span class="n">response</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+            <span class="n">model</span><span class="o">=</span><span class="s2">&quot;gpt-4o&quot;</span><span class="p">,</span>
+            <span class="n">messages</span><span class="o">=</span><span class="p">[</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;system&quot;</span><span class="p">,</span> 
+                    <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;You are an expert at converting academic documents into clear, natural audio narration text. Convert mathematical expressions to natural language and make everything perfect for text-to-speech.&quot;</span>
+                <span class="p">},</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> 
+                    <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">prompt</span>
+                <span class="p">}</span>
+            <span class="p">],</span>
+            <span class="n">temperature</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+            <span class="n">max_tokens</span><span class="o">=</span><span class="n">max_output_tokens</span><span class="p">,</span>
+            <span class="n">timeout</span><span class="o">=</span><span class="mi">60</span>  <span class="c1"># 1 minute timeout</span>
+        <span class="p">)</span>
+        
+        <span class="n">result</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        
+        <span class="k">if</span> <span class="n">progress_callback</span><span class="p">:</span>
+            <span class="n">progress_callback</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;LLM response received: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="p">)</span><span class="si">}</span><span class="s2"> characters&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Validate that enhancement actually worked</span>
+        <span class="k">if</span> <span class="n">result</span> <span class="o">==</span> <span class="n">content</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;LLM returned identical content - enhancement failed&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Check if critical math expressions were converted</span>
+        <span class="c1"># Count original vs remaining math expressions</span>
+        <span class="n">original_inline</span> <span class="o">=</span> <span class="n">content</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\\</span><span class="s2">(&quot;</span><span class="p">)</span>
+        <span class="n">original_display</span> <span class="o">=</span> <span class="n">content</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\\</span><span class="s2">[&quot;</span><span class="p">)</span>
+        <span class="n">remaining_inline</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\\</span><span class="s2">(&quot;</span><span class="p">)</span>
+        <span class="n">remaining_display</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\\</span><span class="s2">[&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># If most math wasn&#39;t converted, that&#39;s a failure</span>
+        <span class="k">if</span> <span class="n">original_inline</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">remaining_inline</span> <span class="o">&gt;=</span> <span class="n">original_inline</span> <span class="o">*</span> <span class="mf">0.8</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Inline math not converted - </span><span class="si">{</span><span class="n">remaining_inline</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">original_inline</span><span class="si">}</span><span class="s2"> expressions remain&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">original_display</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">remaining_display</span> <span class="o">&gt;=</span> <span class="n">original_display</span> <span class="o">*</span> <span class="mf">0.8</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Display math not converted - </span><span class="si">{</span><span class="n">remaining_display</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">original_display</span><span class="si">}</span><span class="s2"> expressions remain&quot;</span><span class="p">)</span>
+            
+        <span class="k">return</span> <span class="n">result</span>
+        
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">error_msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Simple LLM enhancement failed: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">if</span> <span class="n">progress_callback</span><span class="p">:</span>
+            <span class="n">progress_callback</span><span class="p">(</span><span class="n">error_msg</span><span class="p">)</span>
+        
+        <span class="c1"># For debugging, show more details</span>
+        <span class="k">if</span> <span class="s2">&quot;timeout&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+            <span class="n">error_msg</span> <span class="o">+=</span> <span class="s2">&quot; (Request timed out - content may be too large)&quot;</span>
+        <span class="k">elif</span> <span class="s2">&quot;tokens&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+            <span class="n">error_msg</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; (Token limit issue - content was </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">content</span><span class="p">)</span><span class="si">}</span><span class="s2"> chars)&quot;</span>
+        <span class="k">elif</span> <span class="s2">&quot;rate_limit&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+            <span class="n">error_msg</span> <span class="o">+=</span> <span class="s2">&quot; (Rate limit exceeded - try again in a moment)&quot;</span>
+        <span class="k">elif</span> <span class="s2">&quot;authentication&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">or</span> <span class="s2">&quot;api_key&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+            <span class="n">error_msg</span> <span class="o">+=</span> <span class="s2">&quot; (API key issue - check your OpenAI key)&quot;</span>
+        
+        <span class="k">if</span> <span class="n">progress_callback</span><span class="p">:</span>
+            <span class="n">progress_callback</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Detailed error: </span><span class="si">{</span><span class="n">error_msg</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># RAISE the error instead of hiding it</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">error_msg</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="enhance_with_intelligent_chunking">
+<a class="viewcode-back" href="../../index.html#paper_voice.simple_llm_enhancer.enhance_with_intelligent_chunking">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">enhance_with_intelligent_chunking</span><span class="p">(</span><span class="n">content</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">api_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">progress_callback</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Intelligent chunking based on actual OpenAI token limits.</span>
+<span class="sd">    </span>
+<span class="sd">    - GPT-4o: 128,000 tokens total (input + output)  </span>
+<span class="sd">    - Reserve ~50,000 tokens for output, leaving ~78,000 for input</span>
+<span class="sd">    - Each chunk: ~60,000 input tokens max = ~180,000 characters</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">if</span> <span class="n">progress_callback</span><span class="p">:</span>
+        <span class="n">progress_callback</span><span class="p">(</span><span class="s2">&quot;Using intelligent chunking based on OpenAI API limits...&quot;</span><span class="p">)</span>
+    
+    <span class="n">client</span> <span class="o">=</span> <span class="n">OpenAI</span><span class="p">(</span><span class="n">api_key</span><span class="o">=</span><span class="n">api_key</span><span class="p">)</span>
+    
+    <span class="c1"># Conservative chunking for GPT-4o: 60,000 input tokens max per chunk</span>
+    <span class="n">MAX_CHUNK_TOKENS</span> <span class="o">=</span> <span class="mi">60000</span>
+    <span class="n">MAX_CHUNK_CHARS</span> <span class="o">=</span> <span class="n">MAX_CHUNK_TOKENS</span> <span class="o">*</span> <span class="mi">3</span>  <span class="c1"># ~180,000 characters</span>
+    
+    <span class="k">if</span> <span class="n">progress_callback</span><span class="p">:</span>
+        <span class="n">progress_callback</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Max chunk size: </span><span class="si">{</span><span class="n">MAX_CHUNK_CHARS</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> chars (~</span><span class="si">{</span><span class="n">MAX_CHUNK_TOKENS</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> tokens)&quot;</span><span class="p">)</span>
+    
+    <span class="c1"># Split content into appropriately sized chunks</span>
+    <span class="n">chunks</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">current_pos</span> <span class="o">=</span> <span class="mi">0</span>
+    
+    <span class="k">while</span> <span class="n">current_pos</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">content</span><span class="p">):</span>
+        <span class="c1"># Calculate end position</span>
+        <span class="n">end_pos</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">current_pos</span> <span class="o">+</span> <span class="n">MAX_CHUNK_CHARS</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">content</span><span class="p">))</span>
+        
+        <span class="c1"># If not at the end, find a good breaking point</span>
+        <span class="k">if</span> <span class="n">end_pos</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">content</span><span class="p">):</span>
+            <span class="n">chunk_text</span> <span class="o">=</span> <span class="n">content</span><span class="p">[</span><span class="n">current_pos</span><span class="p">:</span><span class="n">end_pos</span><span class="p">]</span>
+            
+            <span class="c1"># Try to break at natural boundaries (in order of preference)</span>
+            <span class="n">break_patterns</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="s1">&#39;</span><span class="se">\n\\</span><span class="s1">section{&#39;</span><span class="p">,</span>      <span class="c1"># LaTeX sections</span>
+                <span class="s1">&#39;</span><span class="se">\n\\</span><span class="s1">subsection{&#39;</span><span class="p">,</span>  <span class="c1"># LaTeX subsections  </span>
+                <span class="s1">&#39;</span><span class="se">\n\\</span><span class="s1">begin{&#39;</span><span class="p">,</span>       <span class="c1"># LaTeX environments</span>
+                <span class="s1">&#39;</span><span class="se">\n\n\n</span><span class="s1">&#39;</span><span class="p">,</span>          <span class="c1"># Triple newlines</span>
+                <span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">&#39;</span><span class="p">,</span>            <span class="c1"># Double newlines (paragraphs)</span>
+                <span class="s1">&#39;. &#39;</span><span class="p">,</span>              <span class="c1"># Sentence endings</span>
+                <span class="s1">&#39;, &#39;</span><span class="p">,</span>              <span class="c1"># Comma breaks</span>
+            <span class="p">]</span>
+            
+            <span class="k">for</span> <span class="n">pattern</span> <span class="ow">in</span> <span class="n">break_patterns</span><span class="p">:</span>
+                <span class="n">last_break</span> <span class="o">=</span> <span class="n">chunk_text</span><span class="o">.</span><span class="n">rfind</span><span class="p">(</span><span class="n">pattern</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">last_break</span> <span class="o">&gt;</span> <span class="n">MAX_CHUNK_CHARS</span> <span class="o">*</span> <span class="mf">0.6</span><span class="p">:</span>  <span class="c1"># At least 60% of max size</span>
+                    <span class="n">end_pos</span> <span class="o">=</span> <span class="n">current_pos</span> <span class="o">+</span> <span class="n">last_break</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">pattern</span><span class="p">)</span>
+                    <span class="k">break</span>
+        
+        <span class="n">chunk</span> <span class="o">=</span> <span class="n">content</span><span class="p">[</span><span class="n">current_pos</span><span class="p">:</span><span class="n">end_pos</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">chunk</span><span class="p">:</span>
+            <span class="n">chunks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+        
+        <span class="n">current_pos</span> <span class="o">=</span> <span class="n">end_pos</span>
+    
+    <span class="k">if</span> <span class="n">progress_callback</span><span class="p">:</span>
+        <span class="n">progress_callback</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Split into </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">chunks</span><span class="p">)</span><span class="si">}</span><span class="s2"> chunks (sizes: </span><span class="si">{</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">c</span><span class="p">)</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">chunks</span><span class="p">][:</span><span class="mi">5</span><span class="p">]</span><span class="si">}{</span><span class="s1">&#39;...&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="n">chunks</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">5</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;&#39;</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+    
+    <span class="n">enhanced_chunks</span> <span class="o">=</span> <span class="p">[]</span>
+    
+    <span class="c1"># Process each chunk with comprehensive enhancement</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">chunks</span><span class="p">):</span>
+        <span class="n">chunk_tokens</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span> <span class="o">//</span> <span class="mi">3</span>
+        <span class="k">if</span> <span class="n">progress_callback</span><span class="p">:</span>
+            <span class="n">progress_callback</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Processing chunk </span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">chunks</span><span class="p">)</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> chars, ~</span><span class="si">{</span><span class="n">chunk_tokens</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> tokens)...&quot;</span><span class="p">)</span>
+        
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Each chunk gets the full enhancement treatment</span>
+            <span class="n">enhanced_chunk</span> <span class="o">=</span> <span class="n">enhance_with_simple_llm</span><span class="p">(</span><span class="n">chunk</span><span class="p">,</span> <span class="n">api_key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">enhanced_chunks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">enhanced_chunk</span><span class="p">)</span>
+            
+            <span class="k">if</span> <span class="n">progress_callback</span><span class="p">:</span>
+                <span class="n">progress_callback</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;✅ Chunk </span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">chunks</span><span class="p">)</span><span class="si">}</span><span class="s2"> completed successfully&quot;</span><span class="p">)</span>
+            
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">progress_callback</span><span class="p">:</span>
+                <span class="n">progress_callback</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;❌ Chunk </span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">chunks</span><span class="p">)</span><span class="si">}</span><span class="s2"> failed: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            
+            <span class="c1"># If individual chunk fails, we need to handle it</span>
+            <span class="k">if</span> <span class="s2">&quot;context_length_exceeded&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">):</span>
+                <span class="c1"># Chunk is still too big - try to split it further</span>
+                <span class="k">if</span> <span class="n">progress_callback</span><span class="p">:</span>
+                    <span class="n">progress_callback</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Chunk </span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2"> too large, attempting to split further...&quot;</span><span class="p">)</span>
+                
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="c1"># Recursively chunk this piece</span>
+                    <span class="n">sub_enhanced</span> <span class="o">=</span> <span class="n">enhance_with_intelligent_chunking</span><span class="p">(</span><span class="n">chunk</span><span class="p">,</span> <span class="n">api_key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                    <span class="n">enhanced_chunks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sub_enhanced</span><span class="p">)</span>
+                    
+                    <span class="k">if</span> <span class="n">progress_callback</span><span class="p">:</span>
+                        <span class="n">progress_callback</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;✅ Chunk </span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2"> completed via sub-chunking&quot;</span><span class="p">)</span>
+                        
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">sub_e</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Chunk </span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2"> failed even after sub-chunking: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">sub_e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Some other error - propagate it</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Chunk </span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2"> enhancement failed: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+    <span class="n">final_result</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">enhanced_chunks</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="n">progress_callback</span><span class="p">:</span>
+        <span class="n">progress_callback</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;✅ All </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">chunks</span><span class="p">)</span><span class="si">}</span><span class="s2"> chunks processed successfully! Final length: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">final_result</span><span class="p">)</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> chars&quot;</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="n">final_result</span></div>
+
+
+
+<div class="viewcode-block" id="enhance_with_chunking_fallback">
+<a class="viewcode-back" href="../../index.html#paper_voice.simple_llm_enhancer.enhance_with_chunking_fallback">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">enhance_with_chunking_fallback</span><span class="p">(</span><span class="n">content</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">api_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">progress_callback</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Fallback for very large documents - split into logical chunks.</span>
+<span class="sd">    </span>
+<span class="sd">    Only used if the single-call approach fails due to size limits.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">if</span> <span class="n">progress_callback</span><span class="p">:</span>
+        <span class="n">progress_callback</span><span class="p">(</span><span class="s2">&quot;Document too large, using chunking fallback...&quot;</span><span class="p">)</span>
+    
+    <span class="n">client</span> <span class="o">=</span> <span class="n">OpenAI</span><span class="p">(</span><span class="n">api_key</span><span class="o">=</span><span class="n">api_key</span><span class="p">)</span>
+    
+    <span class="c1"># Split into smaller chunks (rough paragraph splits)</span>
+    <span class="n">chunks</span> <span class="o">=</span> <span class="n">content</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="n">enhanced_chunks</span> <span class="o">=</span> <span class="p">[]</span>
+    
+    <span class="n">chunk_prompt</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;Convert this text chunk into clear audio narration. Convert all math expressions to natural language, clean up LaTeX artifacts, and make it flow naturally for text-to-speech:</span>
+
+<span class="si">{chunk}</span>
+
+<span class="s2">Enhanced version:&quot;&quot;&quot;</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">chunks</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">chunk</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+            <span class="n">enhanced_chunks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+            <span class="k">continue</span>
+            
+        <span class="k">if</span> <span class="n">progress_callback</span><span class="p">:</span>
+            <span class="n">progress_callback</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Processing chunk </span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">chunks</span><span class="p">)</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+            
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+                <span class="n">model</span><span class="o">=</span><span class="s2">&quot;gpt-4o&quot;</span><span class="p">,</span>
+                <span class="n">messages</span><span class="o">=</span><span class="p">[</span>
+                    <span class="p">{</span>
+                        <span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;system&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;Convert academic text to clear audio narration. Convert math to natural language.&quot;</span>
+                    <span class="p">},</span>
+                    <span class="p">{</span>
+                        <span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> 
+                        <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">chunk_prompt</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">chunk</span><span class="o">=</span><span class="n">chunk</span><span class="p">)</span>
+                    <span class="p">}</span>
+                <span class="p">],</span>
+                <span class="n">temperature</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+                <span class="n">max_tokens</span><span class="o">=</span><span class="mi">1500</span>
+            <span class="p">)</span>
+            
+            <span class="n">enhanced_chunk</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="n">enhanced_chunks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">enhanced_chunk</span><span class="p">)</span>
+            
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">progress_callback</span><span class="p">:</span>
+                <span class="n">progress_callback</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Warning: Failed to enhance chunk </span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="c1"># Keep original chunk if enhancement fails</span>
+            <span class="n">enhanced_chunks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">enhanced_chunks</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="enhance_document_simple">
+<a class="viewcode-back" href="../../index.html#paper_voice.simple_llm_enhancer.enhance_document_simple">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">enhance_document_simple</span><span class="p">(</span><span class="n">content</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">api_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">progress_callback</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Main entry point for simple LLM enhancement.</span>
+<span class="sd">    </span>
+<span class="sd">    Based on actual OpenAI limits:</span>
+<span class="sd">    - GPT-4o: 128,000 tokens total (input + output)</span>
+<span class="sd">    - GPT-4.1: 1,000,000 tokens total</span>
+<span class="sd">    - Rule of thumb: ~3-4 characters per token</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">if</span> <span class="n">progress_callback</span><span class="p">:</span>
+        <span class="n">progress_callback</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Starting enhancement for </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">content</span><span class="p">)</span><span class="si">}</span><span class="s2"> characters...&quot;</span><span class="p">)</span>
+    
+    <span class="c1"># Calculate estimated tokens (conservative estimate: 3 chars per token)</span>
+    <span class="n">estimated_input_tokens</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">content</span><span class="p">)</span> <span class="o">//</span> <span class="mi">3</span>
+    <span class="n">estimated_output_tokens</span> <span class="o">=</span> <span class="n">estimated_input_tokens</span> <span class="o">*</span> <span class="mf">1.5</span>  <span class="c1"># Assume 1.5x expansion</span>
+    <span class="n">total_estimated_tokens</span> <span class="o">=</span> <span class="n">estimated_input_tokens</span> <span class="o">+</span> <span class="n">estimated_output_tokens</span>
+    
+    <span class="c1"># GPT-4o limit: 128,000 tokens total</span>
+    <span class="n">GPT4O_TOKEN_LIMIT</span> <span class="o">=</span> <span class="mi">128000</span>
+    
+    <span class="k">if</span> <span class="n">total_estimated_tokens</span> <span class="o">&lt;=</span> <span class="n">GPT4O_TOKEN_LIMIT</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">progress_callback</span><span class="p">:</span>
+            <span class="n">progress_callback</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Using SINGLE LLM call (</span><span class="si">{</span><span class="n">estimated_input_tokens</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> input + </span><span class="si">{</span><span class="n">estimated_output_tokens</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> estimated output = </span><span class="si">{</span><span class="n">total_estimated_tokens</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> tokens, within </span><span class="si">{</span><span class="n">GPT4O_TOKEN_LIMIT</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> limit)&quot;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">enhance_with_simple_llm</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="n">api_key</span><span class="p">,</span> <span class="n">progress_callback</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">progress_callback</span><span class="p">:</span>
+            <span class="n">progress_callback</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Content too large (</span><span class="si">{</span><span class="n">total_estimated_tokens</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> tokens &gt; </span><span class="si">{</span><span class="n">GPT4O_TOKEN_LIMIT</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> limit). Using intelligent chunking...&quot;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">enhance_with_intelligent_chunking</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="n">api_key</span><span class="p">,</span> <span class="n">progress_callback</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Gaurav Sood.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

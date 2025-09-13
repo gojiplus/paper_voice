@@ -1,0 +1,537 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Paper Voice Documentation &mdash; Paper Voice 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="#" class="icon icon-home">
+            Paper Voice
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">Paper Voice Documentation</a><ul>
+<li><a class="reference internal" href="#installation">Installation</a></li>
+<li><a class="reference internal" href="#quick-start">Quick Start</a></li>
+<li><a class="reference internal" href="#web-interface">Web Interface</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#key-features">Key Features</a></li>
+<li><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li><a class="reference internal" href="#module-paper_voice.simple_llm_enhancer">Core Functions</a><ul>
+<li><a class="reference internal" href="#paper_voice.simple_llm_enhancer.enhance_document_simple"><code class="docutils literal notranslate"><span class="pre">enhance_document_simple()</span></code></a></li>
+<li><a class="reference internal" href="#paper_voice.simple_llm_enhancer.enhance_with_chunking_fallback"><code class="docutils literal notranslate"><span class="pre">enhance_with_chunking_fallback()</span></code></a></li>
+<li><a class="reference internal" href="#paper_voice.simple_llm_enhancer.enhance_with_intelligent_chunking"><code class="docutils literal notranslate"><span class="pre">enhance_with_intelligent_chunking()</span></code></a></li>
+<li><a class="reference internal" href="#paper_voice.simple_llm_enhancer.enhance_with_simple_llm"><code class="docutils literal notranslate"><span class="pre">enhance_with_simple_llm()</span></code></a></li>
+<li><a class="reference internal" href="#paper_voice.pdf_utils.extract_full_document_text"><code class="docutils literal notranslate"><span class="pre">extract_full_document_text()</span></code></a></li>
+<li><a class="reference internal" href="#paper_voice.pdf_utils.extract_raw_text"><code class="docutils literal notranslate"><span class="pre">extract_raw_text()</span></code></a></li>
+<li><a class="reference internal" href="#paper_voice.tts.synthesize_speech"><code class="docutils literal notranslate"><span class="pre">synthesize_speech()</span></code></a></li>
+<li><a class="reference internal" href="#paper_voice.tts.synthesize_speech_chunked"><code class="docutils literal notranslate"><span class="pre">synthesize_speech_chunked()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-paper_voice.content_processor">Content Processing</a><ul>
+<li><a class="reference internal" href="#paper_voice.content_processor.ProcessedDocument"><code class="docutils literal notranslate"><span class="pre">ProcessedDocument</span></code></a></li>
+<li><a class="reference internal" href="#paper_voice.content_processor.detect_input_type"><code class="docutils literal notranslate"><span class="pre">detect_input_type()</span></code></a></li>
+<li><a class="reference internal" href="#paper_voice.content_processor.get_supported_input_types"><code class="docutils literal notranslate"><span class="pre">get_supported_input_types()</span></code></a></li>
+<li><a class="reference internal" href="#paper_voice.content_processor.process_content_unified"><code class="docutils literal notranslate"><span class="pre">process_content_unified()</span></code></a></li>
+<li><a class="reference internal" href="#paper_voice.content_processor.process_latex_content"><code class="docutils literal notranslate"><span class="pre">process_latex_content()</span></code></a></li>
+<li><a class="reference internal" href="#paper_voice.content_processor.process_text_with_math"><code class="docutils literal notranslate"><span class="pre">process_text_with_math()</span></code></a></li>
+<li><a class="reference internal" href="#paper_voice.latex_processor.ProcessedContent"><code class="docutils literal notranslate"><span class="pre">ProcessedContent</span></code></a></li>
+<li><a class="reference internal" href="#paper_voice.latex_processor.clean_latex_commands"><code class="docutils literal notranslate"><span class="pre">clean_latex_commands()</span></code></a></li>
+<li><a class="reference internal" href="#paper_voice.latex_processor.extract_figures_and_tables"><code class="docutils literal notranslate"><span class="pre">extract_figures_and_tables()</span></code></a></li>
+<li><a class="reference internal" href="#paper_voice.latex_processor.extract_latex_environments"><code class="docutils literal notranslate"><span class="pre">extract_latex_environments()</span></code></a></li>
+<li><a class="reference internal" href="#paper_voice.latex_processor.latex_math_to_speech"><code class="docutils literal notranslate"><span class="pre">latex_math_to_speech()</span></code></a></li>
+<li><a class="reference internal" href="#paper_voice.latex_processor.process_inline_and_display_math"><code class="docutils literal notranslate"><span class="pre">process_inline_and_display_math()</span></code></a></li>
+<li><a class="reference internal" href="#paper_voice.latex_processor.process_latex_document"><code class="docutils literal notranslate"><span class="pre">process_latex_document()</span></code></a></li>
+<li><a class="reference internal" href="#paper_voice.latex_processor.process_latex_environments"><code class="docutils literal notranslate"><span class="pre">process_latex_environments()</span></code></a></li>
+<li><a class="reference internal" href="#paper_voice.latex_processor.process_markdown_with_math"><code class="docutils literal notranslate"><span class="pre">process_markdown_with_math()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-paper_voice.selective_enhancer">Selective Enhancement</a><ul>
+<li><a class="reference internal" href="#paper_voice.selective_enhancer.enhance_content_selectively"><code class="docutils literal notranslate"><span class="pre">enhance_content_selectively()</span></code></a></li>
+<li><a class="reference internal" href="#paper_voice.selective_enhancer.fix_pdf_extraction_issues"><code class="docutils literal notranslate"><span class="pre">fix_pdf_extraction_issues()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+</ul>
+</div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">Paper Voice</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Paper Voice Documentation</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="paper-voice-documentation">
+<h1>Paper Voice Documentation<a class="headerlink" href="#paper-voice-documentation" title="Link to this heading"></a></h1>
+<p>Paper Voice converts academic papers to high-quality audio narration with precise mathematical explanations using a simplified LLM-powered approach.</p>
+<div class="toctree-wrapper compound">
+</div>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>paper_voice
+</pre></div>
+</div>
+</section>
+<section id="quick-start">
+<h2>Quick Start<a class="headerlink" href="#quick-start" title="Link to this heading"></a></h2>
+<p>Basic usage with the simplified API:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">paper_voice.simple_llm_enhancer</span><span class="w"> </span><span class="kn">import</span> <span class="n">enhance_document_simple</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">paper_voice</span><span class="w"> </span><span class="kn">import</span> <span class="n">pdf_utils</span><span class="p">,</span> <span class="n">tts</span>
+
+<span class="c1"># Extract text from PDF</span>
+<span class="n">pages</span> <span class="o">=</span> <span class="n">pdf_utils</span><span class="o">.</span><span class="n">extract_raw_text</span><span class="p">(</span><span class="s2">&quot;paper.pdf&quot;</span><span class="p">)</span>
+<span class="n">content</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">pages</span><span class="p">)</span>
+
+<span class="c1"># Convert math to natural language</span>
+<span class="n">enhanced_script</span> <span class="o">=</span> <span class="n">enhance_document_simple</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="n">api_key</span><span class="o">=</span><span class="s2">&quot;your-openai-key&quot;</span><span class="p">)</span>
+
+<span class="c1"># Generate audio</span>
+<span class="n">tts</span><span class="o">.</span><span class="n">synthesize_speech_chunked</span><span class="p">(</span>
+    <span class="n">enhanced_script</span><span class="p">,</span>
+    <span class="s2">&quot;output.mp3&quot;</span><span class="p">,</span>
+    <span class="n">use_openai</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">api_key</span><span class="o">=</span><span class="s2">&quot;your-openai-key&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="web-interface">
+<h2>Web Interface<a class="headerlink" href="#web-interface" title="Link to this heading"></a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>streamlit<span class="w"> </span>run<span class="w"> </span>paper_voice/streamlit/app.py
+</pre></div>
+</div>
+</section>
+</section>
+<section id="key-features">
+<h1>Key Features<a class="headerlink" href="#key-features" title="Link to this heading"></a></h1>
+<ul class="simple">
+<li><p><strong>Natural Math Narration</strong>: Professor-style explanations of mathematical expressions</p></li>
+<li><p><strong>Single LLM Enhancement</strong>: Comprehensive prompt handles all math conversion in one API call</p></li>
+<li><p><strong>Intelligent Chunking</strong>: Automatically handles large documents within OpenAI API limits</p></li>
+<li><p><strong>Multi-Format Support</strong>: PDFs, LaTeX, Markdown, and plain text with math notation</p></li>
+<li><p><strong>Multiple TTS Options</strong>: OpenAI TTS with chunking or offline pyttsx3</p></li>
+</ul>
+</section>
+<section id="api-reference">
+<h1>API Reference<a class="headerlink" href="#api-reference" title="Link to this heading"></a></h1>
+<section id="module-paper_voice.simple_llm_enhancer">
+<span id="core-functions"></span><h2>Core Functions<a class="headerlink" href="#module-paper_voice.simple_llm_enhancer" title="Link to this heading"></a></h2>
+<p>Simple LLM enhancer - just prompt + LLM, no manual processing.</p>
+<p>This module takes the entire document text and sends it to the LLM with
+a comprehensive prompt to convert math expressions to natural language
+and provide clear audio narration. No manual LaTeX processing.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="paper_voice.simple_llm_enhancer.enhance_document_simple">
+<span class="sig-prename descclassname"><span class="pre">paper_voice.simple_llm_enhancer.</span></span><span class="sig-name descname"><span class="pre">enhance_document_simple</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">content</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">api_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">progress_callback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/paper_voice/simple_llm_enhancer.html#enhance_document_simple"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#paper_voice.simple_llm_enhancer.enhance_document_simple" title="Link to this definition"></a></dt>
+<dd><p>Main entry point for simple LLM enhancement.</p>
+<p>Based on actual OpenAI limits:
+- GPT-4o: 128,000 tokens total (input + output)
+- GPT-4.1: 1,000,000 tokens total
+- Rule of thumb: ~3-4 characters per token</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="paper_voice.simple_llm_enhancer.enhance_with_chunking_fallback">
+<span class="sig-prename descclassname"><span class="pre">paper_voice.simple_llm_enhancer.</span></span><span class="sig-name descname"><span class="pre">enhance_with_chunking_fallback</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">content</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">api_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">progress_callback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/paper_voice/simple_llm_enhancer.html#enhance_with_chunking_fallback"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#paper_voice.simple_llm_enhancer.enhance_with_chunking_fallback" title="Link to this definition"></a></dt>
+<dd><p>Fallback for very large documents - split into logical chunks.</p>
+<p>Only used if the single-call approach fails due to size limits.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="paper_voice.simple_llm_enhancer.enhance_with_intelligent_chunking">
+<span class="sig-prename descclassname"><span class="pre">paper_voice.simple_llm_enhancer.</span></span><span class="sig-name descname"><span class="pre">enhance_with_intelligent_chunking</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">content</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">api_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">progress_callback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/paper_voice/simple_llm_enhancer.html#enhance_with_intelligent_chunking"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#paper_voice.simple_llm_enhancer.enhance_with_intelligent_chunking" title="Link to this definition"></a></dt>
+<dd><p>Intelligent chunking based on actual OpenAI token limits.</p>
+<ul class="simple">
+<li><p>GPT-4o: 128,000 tokens total (input + output)</p></li>
+<li><p>Reserve ~50,000 tokens for output, leaving ~78,000 for input</p></li>
+<li><p>Each chunk: ~60,000 input tokens max = ~180,000 characters</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="paper_voice.simple_llm_enhancer.enhance_with_simple_llm">
+<span class="sig-prename descclassname"><span class="pre">paper_voice.simple_llm_enhancer.</span></span><span class="sig-name descname"><span class="pre">enhance_with_simple_llm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">content</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">api_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">progress_callback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/paper_voice/simple_llm_enhancer.html#enhance_with_simple_llm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#paper_voice.simple_llm_enhancer.enhance_with_simple_llm" title="Link to this definition"></a></dt>
+<dd><p>Simple enhancement: just pass all text to LLM with comprehensive prompt.</p>
+<p>No manual LaTeX processing, no selective enhancement, no chunking.
+Just send everything to LLM and let it handle the conversion.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>content</strong> (<em>str</em>) – The entire document text (LaTeX, PDF-extracted, etc.)</p></li>
+<li><p><strong>api_key</strong> (<em>str</em>) – OpenAI API key</p></li>
+<li><p><strong>progress_callback</strong> (<em>callable</em><em>, </em><em>optional</em>) – Progress callback function</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Enhanced text ready for audio narration</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p id="module-paper_voice.pdf_utils">Simple PDF text extraction utilities.</p>
+<p>This module just extracts raw text from PDFs. All processing (math, tables, etc.)
+is now handled by the LLM, not manual parsing.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="paper_voice.pdf_utils.extract_full_document_text">
+<span class="sig-prename descclassname"><span class="pre">paper_voice.pdf_utils.</span></span><span class="sig-name descname"><span class="pre">extract_full_document_text</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pdf_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/paper_voice/pdf_utils.html#extract_full_document_text"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#paper_voice.pdf_utils.extract_full_document_text" title="Link to this definition"></a></dt>
+<dd><p>Extract all text from a PDF as a single string.</p>
+<p>This is the main function used by the simplified pipeline.
+All processing is now done by LLM, not manual parsing.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="paper_voice.pdf_utils.extract_raw_text">
+<span class="sig-prename descclassname"><span class="pre">paper_voice.pdf_utils.</span></span><span class="sig-name descname"><span class="pre">extract_raw_text</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pdf_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/paper_voice/pdf_utils.html#extract_raw_text"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#paper_voice.pdf_utils.extract_raw_text" title="Link to this definition"></a></dt>
+<dd><p>Extract raw text from each page of a PDF.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pdf_path</strong> (<em>str</em>) – Path to the PDF file on disk.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A list of strings, one per page. Pages that cannot be read will
+produce an empty string in the corresponding position.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[str]</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>PyPDF2 does not always perfectly extract text, especially from PDF
+documents created from scans or with unusual fonts. If the document
+contains images of text (e.g. scanned pages), you may need an OCR
+pipeline such as pytesseract instead.</p>
+</dd></dl>
+
+<p id="module-paper_voice.tts">Abstractions for synthesising speech from text.</p>
+<p>This module exposes a simple API over two different TTS backends:</p>
+<ol class="arabic simple">
+<li><p><strong>Offline TTS via `pyttsx3`</strong>: Available out of the box and does not
+require network access. Produces a WAV file. To convert to MP3, this
+module uses <cite>pydub</cite>, which requires that <code class="docutils literal notranslate"><span class="pre">ffmpeg</span></code> be installed on
+the system. On many Linux distributions you can install ffmpeg via
+your package manager.</p></li>
+<li><p><strong>OpenAI Text‑to‑Speech API</strong>: Requires a valid API key. Produces an
+MP3 directly. The OpenAI API currently supports a limited set of
+voices and languages but generally yields higher quality output.</p></li>
+</ol>
+<dl class="py function">
+<dt class="sig sig-object py" id="paper_voice.tts.synthesize_speech">
+<span class="sig-prename descclassname"><span class="pre">paper_voice.tts.</span></span><span class="sig-name descname"><span class="pre">synthesize_speech</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">voice</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_openai</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">api_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'tts-1'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">openai_voice</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'alloy'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/paper_voice/tts.html#synthesize_speech"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#paper_voice.tts.synthesize_speech" title="Link to this definition"></a></dt>
+<dd><p>Synthesize speech from text and write it to a file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> (<em>str</em>) – The input text to speak.</p></li>
+<li><p><strong>output_path</strong> (<em>str</em>) – Path where the audio file should be written. The file extension
+determines the format. For offline synthesis this should end
+with <code class="docutils literal notranslate"><span class="pre">.wav</span></code>; for OpenAI TTS this should end with <code class="docutils literal notranslate"><span class="pre">.mp3</span></code>.</p></li>
+<li><p><strong>voice</strong> (<em>str</em><em>, </em><em>optional</em>) – A substring of the desired voice name when using <code class="docutils literal notranslate"><span class="pre">pyttsx3</span></code>.
+On Windows you might use ‘Zira’ or ‘David’, on macOS ‘Samantha’
+etc. If empty, the default voice is used.</p></li>
+<li><p><strong>rate</strong> (<em>int</em><em>, </em><em>optional</em>) – Words per minute for offline synthesis. Typical values are 150–250.</p></li>
+<li><p><strong>use_openai</strong> (<em>bool</em><em>, </em><em>optional</em>) – If true, attempts to synthesise via the OpenAI API. Requires
+<code class="docutils literal notranslate"><span class="pre">openai</span></code> package and a valid API key. The output format will
+always be MP3 in this mode.</p></li>
+<li><p><strong>api_key</strong> (<em>str</em><em>, </em><em>optional</em>) – The OpenAI API key to use. If not provided, uses the
+<code class="docutils literal notranslate"><span class="pre">OPENAI_API_KEY</span></code> environment variable.</p></li>
+<li><p><strong>model</strong> (<em>str</em><em>, </em><em>optional</em>) – The OpenAI TTS model to use. At time of writing ‘tts-1’ and
+‘tts-1-hd’ are available.</p></li>
+<li><p><strong>openai_voice</strong> (<em>str</em><em>, </em><em>optional</em>) – The voice name for OpenAI TTS (e.g. ‘alloy’, ‘echo’).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The path to the generated audio file. In offline mode this may
+differ from <code class="docutils literal notranslate"><span class="pre">output_path</span></code> if an intermediate WAV is created and
+later converted.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>RuntimeError</strong> – If required libraries are missing or synthesis fails.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="paper_voice.tts.synthesize_speech_chunked">
+<span class="sig-prename descclassname"><span class="pre">paper_voice.tts.</span></span><span class="sig-name descname"><span class="pre">synthesize_speech_chunked</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">voice</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_openai</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">api_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'tts-1'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">openai_voice</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'alloy'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/paper_voice/tts.html#synthesize_speech_chunked"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#paper_voice.tts.synthesize_speech_chunked" title="Link to this definition"></a></dt>
+<dd><p>Synthesize speech with automatic text chunking for long texts.</p>
+<p>This function handles texts longer than the OpenAI TTS limit by splitting
+them into chunks and concatenating the audio files.</p>
+</dd></dl>
+
+</section>
+<section id="module-paper_voice.content_processor">
+<span id="content-processing"></span><h2>Content Processing<a class="headerlink" href="#module-paper_voice.content_processor" title="Link to this heading"></a></h2>
+<p>Unified content processor for all input types.</p>
+<p>This module provides a single, clean interface for processing different types
+of academic content (PDF, LaTeX, Markdown, plain text) with selective LLM
+enhancement for math, figures, and tables.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="paper_voice.content_processor.ProcessedDocument">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">paper_voice.content_processor.</span></span><span class="sig-name descname"><span class="pre">ProcessedDocument</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">enhanced_text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">figures</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tables</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">equations</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">has_math</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">has_figures</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">has_tables</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/paper_voice/content_processor.html#ProcessedDocument"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#paper_voice.content_processor.ProcessedDocument" title="Link to this definition"></a></dt>
+<dd><p>Container for processed document content.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="paper_voice.content_processor.detect_input_type">
+<span class="sig-prename descclassname"><span class="pre">paper_voice.content_processor.</span></span><span class="sig-name descname"><span class="pre">detect_input_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">content</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/paper_voice/content_processor.html#detect_input_type"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#paper_voice.content_processor.detect_input_type" title="Link to this definition"></a></dt>
+<dd><p>Automatically detect the input type based on content and filename.</p>
+<p>Returns one of: ‘pdf’, ‘latex’, ‘markdown’, ‘text’</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="paper_voice.content_processor.get_supported_input_types">
+<span class="sig-prename descclassname"><span class="pre">paper_voice.content_processor.</span></span><span class="sig-name descname"><span class="pre">get_supported_input_types</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span></span></span><a class="reference internal" href="_modules/paper_voice/content_processor.html#get_supported_input_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#paper_voice.content_processor.get_supported_input_types" title="Link to this definition"></a></dt>
+<dd><p>Get list of supported input types.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="paper_voice.content_processor.process_content_unified">
+<span class="sig-prename descclassname"><span class="pre">paper_voice.content_processor.</span></span><span class="sig-name descname"><span class="pre">process_content_unified</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">content</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">api_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_llm_enhancement</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">progress_callback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#paper_voice.content_processor.ProcessedDocument" title="paper_voice.content_processor.ProcessedDocument"><span class="pre">ProcessedDocument</span></a></span></span><a class="reference internal" href="_modules/paper_voice/content_processor.html#process_content_unified"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#paper_voice.content_processor.process_content_unified" title="Link to this definition"></a></dt>
+<dd><p>Process content with appropriate enhancement based on type.</p>
+<p>This is the main entry point for all content processing. It:
+1. Determines the appropriate processing strategy
+2. Applies selective LLM enhancement for math, figures, tables
+3. Preserves original text structure for everything else</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>content</strong> (<em>str</em>) – Raw content to process</p></li>
+<li><p><strong>input_type</strong> (<em>str</em>) – Type of content: ‘pdf’, ‘latex’, ‘markdown’, ‘text’</p></li>
+<li><p><strong>api_key</strong> (<em>str</em><em>, </em><em>optional</em>) – OpenAI API key for LLM enhancement</p></li>
+<li><p><strong>use_llm_enhancement</strong> (<em>bool</em>) – Whether to use LLM for math, figures, tables</p></li>
+<li><p><strong>progress_callback</strong> (<em>callable</em><em>, </em><em>optional</em>) – Callback for progress updates</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Processed content with metadata</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#paper_voice.content_processor.ProcessedDocument" title="paper_voice.content_processor.ProcessedDocument">ProcessedDocument</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="paper_voice.content_processor.process_latex_content">
+<span class="sig-prename descclassname"><span class="pre">paper_voice.content_processor.</span></span><span class="sig-name descname"><span class="pre">process_latex_content</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">content</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">api_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_llm_enhancement</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/paper_voice/content_processor.html#process_latex_content"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#paper_voice.content_processor.process_latex_content" title="Link to this definition"></a></dt>
+<dd><p>Simplified interface for LaTeX content processing.</p>
+<p>This function specifically handles LaTeX files and applies LLM enhancement
+to math, figures, and tables while preserving all other text.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="paper_voice.content_processor.process_text_with_math">
+<span class="sig-prename descclassname"><span class="pre">paper_voice.content_processor.</span></span><span class="sig-name descname"><span class="pre">process_text_with_math</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">content</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">api_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_llm_enhancement</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/paper_voice/content_processor.html#process_text_with_math"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#paper_voice.content_processor.process_text_with_math" title="Link to this definition"></a></dt>
+<dd><p>Process text content that may contain mathematical expressions.</p>
+<p>This handles both Markdown-style and LaTeX-style math expressions.</p>
+</dd></dl>
+
+<p id="module-paper_voice.latex_processor">LaTeX and Markdown processor for converting mathematical documents to speech.</p>
+<p>This module handles LaTeX/Markdown text with mathematical expressions, tables,
+figures, and various LaTeX environments (equation, align, etc.). It produces
+clean text suitable for text-to-speech synthesis.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="paper_voice.latex_processor.ProcessedContent">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">paper_voice.latex_processor.</span></span><span class="sig-name descname"><span class="pre">ProcessedContent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">figures</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tables</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">equations</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/paper_voice/latex_processor.html#ProcessedContent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#paper_voice.latex_processor.ProcessedContent" title="Link to this definition"></a></dt>
+<dd><p>Container for processed document content.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="paper_voice.latex_processor.clean_latex_commands">
+<span class="sig-prename descclassname"><span class="pre">paper_voice.latex_processor.</span></span><span class="sig-name descname"><span class="pre">clean_latex_commands</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/paper_voice/latex_processor.html#clean_latex_commands"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#paper_voice.latex_processor.clean_latex_commands" title="Link to this definition"></a></dt>
+<dd><p>Remove or replace common LaTeX formatting commands.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="paper_voice.latex_processor.extract_figures_and_tables">
+<span class="sig-prename descclassname"><span class="pre">paper_voice.latex_processor.</span></span><span class="sig-name descname"><span class="pre">extract_figures_and_tables</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/paper_voice/latex_processor.html#extract_figures_and_tables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#paper_voice.latex_processor.extract_figures_and_tables" title="Link to this definition"></a></dt>
+<dd><p>Extract figure and table information from LaTeX.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="paper_voice.latex_processor.extract_latex_environments">
+<span class="sig-prename descclassname"><span class="pre">paper_voice.latex_processor.</span></span><span class="sig-name descname"><span class="pre">extract_latex_environments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/paper_voice/latex_processor.html#extract_latex_environments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#paper_voice.latex_processor.extract_latex_environments" title="Link to this definition"></a></dt>
+<dd><p>Extract LaTeX environments like equation, align, etc.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="paper_voice.latex_processor.latex_math_to_speech">
+<span class="sig-prename descclassname"><span class="pre">paper_voice.latex_processor.</span></span><span class="sig-name descname"><span class="pre">latex_math_to_speech</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">expr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/paper_voice/latex_processor.html#latex_math_to_speech"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#paper_voice.latex_processor.latex_math_to_speech" title="Link to this definition"></a></dt>
+<dd><p>Convert LaTeX mathematical expression to speech.</p>
+<p>This handles inline math content without delimiters.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="paper_voice.latex_processor.process_inline_and_display_math">
+<span class="sig-prename descclassname"><span class="pre">paper_voice.latex_processor.</span></span><span class="sig-name descname"><span class="pre">process_inline_and_display_math</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">api_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_llm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/paper_voice/latex_processor.html#process_inline_and_display_math"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#paper_voice.latex_processor.process_inline_and_display_math" title="Link to this definition"></a></dt>
+<dd><p>Process inline and display math in all LaTeX formats.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="paper_voice.latex_processor.process_latex_document">
+<span class="sig-prename descclassname"><span class="pre">paper_voice.latex_processor.</span></span><span class="sig-name descname"><span class="pre">process_latex_document</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">summarize_figures</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">summarize_tables</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">api_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_llm_math</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#paper_voice.latex_processor.ProcessedContent" title="paper_voice.latex_processor.ProcessedContent"><span class="pre">ProcessedContent</span></a></span></span><a class="reference internal" href="_modules/paper_voice/latex_processor.html#process_latex_document"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#paper_voice.latex_processor.process_latex_document" title="Link to this definition"></a></dt>
+<dd><p>Process a complete LaTeX document.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="paper_voice.latex_processor.process_latex_environments">
+<span class="sig-prename descclassname"><span class="pre">paper_voice.latex_processor.</span></span><span class="sig-name descname"><span class="pre">process_latex_environments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">environments</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/paper_voice/latex_processor.html#process_latex_environments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#paper_voice.latex_processor.process_latex_environments" title="Link to this definition"></a></dt>
+<dd><p>Process LaTeX environments and replace with spoken equivalents.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="paper_voice.latex_processor.process_markdown_with_math">
+<span class="sig-prename descclassname"><span class="pre">paper_voice.latex_processor.</span></span><span class="sig-name descname"><span class="pre">process_markdown_with_math</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">api_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_llm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/paper_voice/latex_processor.html#process_markdown_with_math"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#paper_voice.latex_processor.process_markdown_with_math" title="Link to this definition"></a></dt>
+<dd><p>Process Markdown text with LaTeX math expressions.</p>
+</dd></dl>
+
+</section>
+<section id="module-paper_voice.selective_enhancer">
+<span id="selective-enhancement"></span><h2>Selective Enhancement<a class="headerlink" href="#module-paper_voice.selective_enhancer" title="Link to this heading"></a></h2>
+<p>Simple content enhancement for academic papers.</p>
+<p>This module provides a simplified approach that just passes all content
+to the LLM with a comprehensive prompt. No manual LaTeX processing.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="paper_voice.selective_enhancer.enhance_content_selectively">
+<span class="sig-prename descclassname"><span class="pre">paper_voice.selective_enhancer.</span></span><span class="sig-name descname"><span class="pre">enhance_content_selectively</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">content</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">api_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">progress_callback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/paper_voice/selective_enhancer.html#enhance_content_selectively"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#paper_voice.selective_enhancer.enhance_content_selectively" title="Link to this definition"></a></dt>
+<dd><p>Simple enhancement using just LLM + prompt approach.</p>
+<p>This function passes the entire document to the LLM with instructions
+to convert math, clean LaTeX, and make everything audio-ready.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>content</strong> (<em>str</em>) – Original content to enhance (PDF text, LaTeX, etc.)</p></li>
+<li><p><strong>api_key</strong> (<em>str</em>) – OpenAI API key for LLM processing</p></li>
+<li><p><strong>progress_callback</strong> (<em>callable</em><em>, </em><em>optional</em>) – Callback function for progress updates</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Enhanced content ready for audio narration</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="paper_voice.selective_enhancer.fix_pdf_extraction_issues">
+<span class="sig-prename descclassname"><span class="pre">paper_voice.selective_enhancer.</span></span><span class="sig-name descname"><span class="pre">fix_pdf_extraction_issues</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">content</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">api_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">progress_callback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/paper_voice/selective_enhancer.html#fix_pdf_extraction_issues"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#paper_voice.selective_enhancer.fix_pdf_extraction_issues" title="Link to this definition"></a></dt>
+<dd><p>Fix common PDF extraction issues using LLM.</p>
+<p>This function addresses broken words, spacing issues, and formatting
+problems that commonly occur during PDF text extraction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>content</strong> (<em>str</em>) – Raw PDF extracted content with potential issues</p></li>
+<li><p><strong>api_key</strong> (<em>str</em>) – OpenAI API key for LLM processing</p></li>
+<li><p><strong>progress_callback</strong> (<em>callable</em><em>, </em><em>optional</em>) – Callback function for progress updates</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Cleaned content with extraction issues fixed</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+<section id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Link to this heading"></a></h1>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Gaurav Sood.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,615 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>paper_voice.latex_processor &mdash; Paper Voice 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Paper Voice
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Paper Voice</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">paper_voice.latex_processor</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for paper_voice.latex_processor</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">LaTeX and Markdown processor for converting mathematical documents to speech.</span>
+
+<span class="sd">This module handles LaTeX/Markdown text with mathematical expressions, tables,</span>
+<span class="sd">figures, and various LaTeX environments (equation, align, etc.). It produces</span>
+<span class="sd">clean text suitable for text-to-speech synthesis.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+
+
+<div class="viewcode-block" id="ProcessedContent">
+<a class="viewcode-back" href="../../index.html#paper_voice.latex_processor.ProcessedContent">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ProcessedContent</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Container for processed document content.&quot;&quot;&quot;</span>
+    <span class="n">text</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">figures</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span>  <span class="c1"># (caption, description)</span>
+    <span class="n">tables</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span>   <span class="c1"># (caption, content)</span>
+    <span class="n">equations</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>            <span class="c1"># standalone equations</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>        <span class="c1"># title, author, etc.</span></div>
+
+
+
+<span class="c1"># Comprehensive Greek letter mapping</span>
+<span class="n">GREEK_MAPPING</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;alpha&quot;</span><span class="p">:</span> <span class="s2">&quot;alpha&quot;</span><span class="p">,</span> <span class="s2">&quot;beta&quot;</span><span class="p">:</span> <span class="s2">&quot;beta&quot;</span><span class="p">,</span> <span class="s2">&quot;gamma&quot;</span><span class="p">:</span> <span class="s2">&quot;gamma&quot;</span><span class="p">,</span> <span class="s2">&quot;delta&quot;</span><span class="p">:</span> <span class="s2">&quot;delta&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;epsilon&quot;</span><span class="p">:</span> <span class="s2">&quot;epsilon&quot;</span><span class="p">,</span> <span class="s2">&quot;varepsilon&quot;</span><span class="p">:</span> <span class="s2">&quot;epsilon&quot;</span><span class="p">,</span> <span class="s2">&quot;zeta&quot;</span><span class="p">:</span> <span class="s2">&quot;zeta&quot;</span><span class="p">,</span> <span class="s2">&quot;eta&quot;</span><span class="p">:</span> <span class="s2">&quot;eta&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;theta&quot;</span><span class="p">:</span> <span class="s2">&quot;theta&quot;</span><span class="p">,</span> <span class="s2">&quot;vartheta&quot;</span><span class="p">:</span> <span class="s2">&quot;theta&quot;</span><span class="p">,</span> <span class="s2">&quot;iota&quot;</span><span class="p">:</span> <span class="s2">&quot;iota&quot;</span><span class="p">,</span> <span class="s2">&quot;kappa&quot;</span><span class="p">:</span> <span class="s2">&quot;kappa&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;lambda&quot;</span><span class="p">:</span> <span class="s2">&quot;lambda&quot;</span><span class="p">,</span> <span class="s2">&quot;mu&quot;</span><span class="p">:</span> <span class="s2">&quot;mu&quot;</span><span class="p">,</span> <span class="s2">&quot;nu&quot;</span><span class="p">:</span> <span class="s2">&quot;nu&quot;</span><span class="p">,</span> <span class="s2">&quot;xi&quot;</span><span class="p">:</span> <span class="s2">&quot;ksi&quot;</span><span class="p">,</span> <span class="s2">&quot;pi&quot;</span><span class="p">:</span> <span class="s2">&quot;pi&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;varpi&quot;</span><span class="p">:</span> <span class="s2">&quot;pi&quot;</span><span class="p">,</span> <span class="s2">&quot;rho&quot;</span><span class="p">:</span> <span class="s2">&quot;rho&quot;</span><span class="p">,</span> <span class="s2">&quot;varrho&quot;</span><span class="p">:</span> <span class="s2">&quot;rho&quot;</span><span class="p">,</span> <span class="s2">&quot;sigma&quot;</span><span class="p">:</span> <span class="s2">&quot;sigma&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;varsigma&quot;</span><span class="p">:</span> <span class="s2">&quot;sigma&quot;</span><span class="p">,</span> <span class="s2">&quot;tau&quot;</span><span class="p">:</span> <span class="s2">&quot;tau&quot;</span><span class="p">,</span> <span class="s2">&quot;upsilon&quot;</span><span class="p">:</span> <span class="s2">&quot;upsilon&quot;</span><span class="p">,</span> <span class="s2">&quot;phi&quot;</span><span class="p">:</span> <span class="s2">&quot;phi&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;varphi&quot;</span><span class="p">:</span> <span class="s2">&quot;phi&quot;</span><span class="p">,</span> <span class="s2">&quot;chi&quot;</span><span class="p">:</span> <span class="s2">&quot;chi&quot;</span><span class="p">,</span> <span class="s2">&quot;psi&quot;</span><span class="p">:</span> <span class="s2">&quot;psi&quot;</span><span class="p">,</span> <span class="s2">&quot;omega&quot;</span><span class="p">:</span> <span class="s2">&quot;omega&quot;</span><span class="p">,</span>
+    <span class="c1"># Uppercase</span>
+    <span class="s2">&quot;Gamma&quot;</span><span class="p">:</span> <span class="s2">&quot;big gamma&quot;</span><span class="p">,</span> <span class="s2">&quot;Delta&quot;</span><span class="p">:</span> <span class="s2">&quot;big delta&quot;</span><span class="p">,</span> <span class="s2">&quot;Theta&quot;</span><span class="p">:</span> <span class="s2">&quot;big theta&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Lambda&quot;</span><span class="p">:</span> <span class="s2">&quot;big lambda&quot;</span><span class="p">,</span> <span class="s2">&quot;Xi&quot;</span><span class="p">:</span> <span class="s2">&quot;big ksi&quot;</span><span class="p">,</span> <span class="s2">&quot;Pi&quot;</span><span class="p">:</span> <span class="s2">&quot;big pi&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Sigma&quot;</span><span class="p">:</span> <span class="s2">&quot;big sigma&quot;</span><span class="p">,</span> <span class="s2">&quot;Upsilon&quot;</span><span class="p">:</span> <span class="s2">&quot;big upsilon&quot;</span><span class="p">,</span> <span class="s2">&quot;Phi&quot;</span><span class="p">:</span> <span class="s2">&quot;big phi&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Psi&quot;</span><span class="p">:</span> <span class="s2">&quot;big psi&quot;</span><span class="p">,</span> <span class="s2">&quot;Omega&quot;</span><span class="p">:</span> <span class="s2">&quot;big omega&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="c1"># Mathematical operators and symbols</span>
+<span class="n">MATH_OPERATORS</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="c1"># Relations</span>
+    <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">leq&quot;</span><span class="p">:</span> <span class="s2">&quot;less than or equal to&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">geq&quot;</span><span class="p">:</span> <span class="s2">&quot;greater than or equal to&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">neq&quot;</span><span class="p">:</span> <span class="s2">&quot;not equal to&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">approx&quot;</span><span class="p">:</span> <span class="s2">&quot;approximately equal to&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">equiv&quot;</span><span class="p">:</span> <span class="s2">&quot;equivalent to&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">sim&quot;</span><span class="p">:</span> <span class="s2">&quot;similar to&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">simeq&quot;</span><span class="p">:</span> <span class="s2">&quot;similar or equal to&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">cong&quot;</span><span class="p">:</span> <span class="s2">&quot;congruent to&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">propto&quot;</span><span class="p">:</span> <span class="s2">&quot;proportional to&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">ll&quot;</span><span class="p">:</span> <span class="s2">&quot;much less than&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">gg&quot;</span><span class="p">:</span> <span class="s2">&quot;much greater than&quot;</span><span class="p">,</span>
+    <span class="c1"># Arithmetic</span>
+    <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">times&quot;</span><span class="p">:</span> <span class="s2">&quot;times&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">cdot&quot;</span><span class="p">:</span> <span class="s2">&quot;times&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">div&quot;</span><span class="p">:</span> <span class="s2">&quot;divided by&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">pm&quot;</span><span class="p">:</span> <span class="s2">&quot;plus or minus&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">mp&quot;</span><span class="p">:</span> <span class="s2">&quot;minus or plus&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">oplus&quot;</span><span class="p">:</span> <span class="s2">&quot;plus&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">ominus&quot;</span><span class="p">:</span> <span class="s2">&quot;minus&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">otimes&quot;</span><span class="p">:</span> <span class="s2">&quot;tensor product&quot;</span><span class="p">,</span>
+    <span class="c1"># Set theory</span>
+    <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">in&quot;</span><span class="p">:</span> <span class="s2">&quot;in&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">notin&quot;</span><span class="p">:</span> <span class="s2">&quot;not in&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">subset&quot;</span><span class="p">:</span> <span class="s2">&quot;subset of&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">supset&quot;</span><span class="p">:</span> <span class="s2">&quot;superset of&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">subseteq&quot;</span><span class="p">:</span> <span class="s2">&quot;subset or equal to&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">supseteq&quot;</span><span class="p">:</span> <span class="s2">&quot;superset or equal to&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">cup&quot;</span><span class="p">:</span> <span class="s2">&quot;union&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">cap&quot;</span><span class="p">:</span> <span class="s2">&quot;intersection&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">setminus&quot;</span><span class="p">:</span> <span class="s2">&quot;set minus&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">emptyset&quot;</span><span class="p">:</span> <span class="s2">&quot;empty set&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">varnothing&quot;</span><span class="p">:</span> <span class="s2">&quot;empty set&quot;</span><span class="p">,</span>
+    <span class="c1"># Logic</span>
+    <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">land&quot;</span><span class="p">:</span> <span class="s2">&quot;and&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">lor&quot;</span><span class="p">:</span> <span class="s2">&quot;or&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">lnot&quot;</span><span class="p">:</span> <span class="s2">&quot;not&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">neg&quot;</span><span class="p">:</span> <span class="s2">&quot;not&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">implies&quot;</span><span class="p">:</span> <span class="s2">&quot;implies&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">iff&quot;</span><span class="p">:</span> <span class="s2">&quot;if and only if&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">exists&quot;</span><span class="p">:</span> <span class="s2">&quot;there exists&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">forall&quot;</span><span class="p">:</span> <span class="s2">&quot;for all&quot;</span><span class="p">,</span>
+    <span class="c1"># Arrows</span>
+    <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">rightarrow&quot;</span><span class="p">:</span> <span class="s2">&quot;tends to&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">to&quot;</span><span class="p">:</span> <span class="s2">&quot;tends to&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">leftarrow&quot;</span><span class="p">:</span> <span class="s2">&quot;comes from&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">leftrightarrow&quot;</span><span class="p">:</span> <span class="s2">&quot;corresponds to&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">Rightarrow&quot;</span><span class="p">:</span> <span class="s2">&quot;implies&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">Leftarrow&quot;</span><span class="p">:</span> <span class="s2">&quot;implied by&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">Leftrightarrow&quot;</span><span class="p">:</span> <span class="s2">&quot;if and only if&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">mapsto&quot;</span><span class="p">:</span> <span class="s2">&quot;maps to&quot;</span><span class="p">,</span>
+    <span class="c1"># Calculus</span>
+    <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">partial&quot;</span><span class="p">:</span> <span class="s2">&quot;partial&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">nabla&quot;</span><span class="p">:</span> <span class="s2">&quot;nabla&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">int&quot;</span><span class="p">:</span> <span class="s2">&quot;integral&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">iint&quot;</span><span class="p">:</span> <span class="s2">&quot;double integral&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">iiint&quot;</span><span class="p">:</span> <span class="s2">&quot;triple integral&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">oint&quot;</span><span class="p">:</span> <span class="s2">&quot;contour integral&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">sum&quot;</span><span class="p">:</span> <span class="s2">&quot;sum&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">prod&quot;</span><span class="p">:</span> <span class="s2">&quot;product&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">lim&quot;</span><span class="p">:</span> <span class="s2">&quot;limit&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">sup&quot;</span><span class="p">:</span> <span class="s2">&quot;supremum&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">inf&quot;</span><span class="p">:</span> <span class="s2">&quot;infimum&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">max&quot;</span><span class="p">:</span> <span class="s2">&quot;maximum&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">min&quot;</span><span class="p">:</span> <span class="s2">&quot;minimum&quot;</span><span class="p">,</span>
+    <span class="c1"># Functions</span>
+    <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">sin&quot;</span><span class="p">:</span> <span class="s2">&quot;sine&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">cos&quot;</span><span class="p">:</span> <span class="s2">&quot;cosine&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">tan&quot;</span><span class="p">:</span> <span class="s2">&quot;tangent&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">sec&quot;</span><span class="p">:</span> <span class="s2">&quot;secant&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">csc&quot;</span><span class="p">:</span> <span class="s2">&quot;cosecant&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">cot&quot;</span><span class="p">:</span> <span class="s2">&quot;cotangent&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">arcsin&quot;</span><span class="p">:</span> <span class="s2">&quot;arc sine&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">arccos&quot;</span><span class="p">:</span> <span class="s2">&quot;arc cosine&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">arctan&quot;</span><span class="p">:</span> <span class="s2">&quot;arc tangent&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">sinh&quot;</span><span class="p">:</span> <span class="s2">&quot;hyperbolic sine&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">cosh&quot;</span><span class="p">:</span> <span class="s2">&quot;hyperbolic cosine&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">tanh&quot;</span><span class="p">:</span> <span class="s2">&quot;hyperbolic tangent&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">log&quot;</span><span class="p">:</span> <span class="s2">&quot;logarithm&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">ln&quot;</span><span class="p">:</span> <span class="s2">&quot;natural logarithm&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">exp&quot;</span><span class="p">:</span> <span class="s2">&quot;exponential&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">sqrt&quot;</span><span class="p">:</span> <span class="s2">&quot;square root&quot;</span><span class="p">,</span>
+    <span class="c1"># Special</span>
+    <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">infty&quot;</span><span class="p">:</span> <span class="s2">&quot;infinity&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">hbar&quot;</span><span class="p">:</span> <span class="s2">&quot;h bar&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">ell&quot;</span><span class="p">:</span> <span class="s2">&quot;ell&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">Re&quot;</span><span class="p">:</span> <span class="s2">&quot;real part&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">Im&quot;</span><span class="p">:</span> <span class="s2">&quot;imaginary part&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">perp&quot;</span><span class="p">:</span> <span class="s2">&quot;perpendicular&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">parallel&quot;</span><span class="p">:</span> <span class="s2">&quot;parallel&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_speak_variable</span><span class="p">(</span><span class="n">var</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert a variable to spoken form.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">GREEK_MAPPING</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">GREEK_MAPPING</span><span class="p">[</span><span class="n">var</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">var</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">var</span><span class="o">.</span><span class="n">isalpha</span><span class="p">():</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;big </span><span class="si">{</span><span class="n">var</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="n">var</span><span class="o">.</span><span class="n">isupper</span><span class="p">()</span> <span class="k">else</span> <span class="n">var</span>
+    <span class="k">return</span> <span class="n">var</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_parse_superscript</span><span class="p">(</span><span class="n">expr</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert superscript to speech.&quot;&quot;&quot;</span>
+    <span class="n">expr</span> <span class="o">=</span> <span class="n">expr</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="n">special_powers</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;2&#39;</span><span class="p">:</span> <span class="s1">&#39;squared&#39;</span><span class="p">,</span> <span class="s1">&#39;3&#39;</span><span class="p">:</span> <span class="s1">&#39;cubed&#39;</span><span class="p">,</span> <span class="s1">&#39;4&#39;</span><span class="p">:</span> <span class="s1">&#39;to the fourth power&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;5&#39;</span><span class="p">:</span> <span class="s1">&#39;to the fifth power&#39;</span><span class="p">,</span> <span class="s1">&#39;-1&#39;</span><span class="p">:</span> <span class="s1">&#39;inverse&#39;</span><span class="p">,</span> <span class="s1">&#39;T&#39;</span><span class="p">:</span> <span class="s1">&#39;transpose&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;*&#39;</span><span class="p">:</span> <span class="s1">&#39;conjugate transpose&#39;</span><span class="p">,</span> <span class="s1">&#39;H&#39;</span><span class="p">:</span> <span class="s1">&#39;hermitian transpose&#39;</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">special_powers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;to the power </span><span class="si">{</span><span class="n">expr</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_parse_subscript</span><span class="p">(</span><span class="n">expr</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert subscript to speech.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;sub </span><span class="si">{</span><span class="n">expr</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_handle_fraction</span><span class="p">(</span><span class="n">match</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Handle \\frac{numerator}{denominator}.&quot;&quot;&quot;</span>
+    <span class="n">num</span><span class="p">,</span> <span class="n">den</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">groups</span><span class="p">()</span>
+    <span class="n">num_speech</span> <span class="o">=</span> <span class="n">latex_math_to_speech</span><span class="p">(</span><span class="n">num</span><span class="p">)</span>
+    <span class="n">den_speech</span> <span class="o">=</span> <span class="n">latex_math_to_speech</span><span class="p">(</span><span class="n">den</span><span class="p">)</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;fraction </span><span class="si">{</span><span class="n">num_speech</span><span class="si">}</span><span class="s2"> over </span><span class="si">{</span><span class="n">den_speech</span><span class="si">}</span><span class="s2">&quot;</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_handle_sqrt</span><span class="p">(</span><span class="n">match</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Handle \\sqrt[n]{content} or \\sqrt{content}.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">match</span><span class="o">.</span><span class="n">lastindex</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>  <span class="c1"># nth root</span>
+        <span class="n">root</span><span class="p">,</span> <span class="n">content</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">groups</span><span class="p">()</span>
+        <span class="n">root_speech</span> <span class="o">=</span> <span class="n">latex_math_to_speech</span><span class="p">(</span><span class="n">root</span><span class="p">)</span>
+        <span class="n">content_speech</span> <span class="o">=</span> <span class="n">latex_math_to_speech</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">root_speech</span><span class="si">}</span><span class="s2"> root of </span><span class="si">{</span><span class="n">content_speech</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="k">else</span><span class="p">:</span>  <span class="c1"># square root</span>
+        <span class="n">content</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">content_speech</span> <span class="o">=</span> <span class="n">latex_math_to_speech</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;square root of </span><span class="si">{</span><span class="n">content_speech</span><span class="si">}</span><span class="s2">&quot;</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_handle_sum_prod_int</span><span class="p">(</span><span class="n">match</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Handle \\sum, \\prod, \\int with limits.&quot;&quot;&quot;</span>
+    <span class="n">command</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">lower</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="k">if</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="n">upper</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="k">if</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
+    
+    <span class="k">if</span> <span class="n">command</span> <span class="o">==</span> <span class="s2">&quot;sum&quot;</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="s2">&quot;sum&quot;</span>
+    <span class="k">elif</span> <span class="n">command</span> <span class="o">==</span> <span class="s2">&quot;prod&quot;</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="s2">&quot;product&quot;</span>
+    <span class="k">elif</span> <span class="n">command</span> <span class="o">==</span> <span class="s2">&quot;int&quot;</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="s2">&quot;integral&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">command</span>
+    
+    <span class="k">if</span> <span class="n">lower</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; from </span><span class="si">{</span><span class="n">latex_math_to_speech</span><span class="p">(</span><span class="n">lower</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="k">if</span> <span class="n">upper</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; to </span><span class="si">{</span><span class="n">latex_math_to_speech</span><span class="p">(</span><span class="n">upper</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+    
+    <span class="k">return</span> <span class="n">result</span>
+
+
+<div class="viewcode-block" id="latex_math_to_speech">
+<a class="viewcode-back" href="../../index.html#paper_voice.latex_processor.latex_math_to_speech">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">latex_math_to_speech</span><span class="p">(</span><span class="n">expr</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert LaTeX mathematical expression to speech.</span>
+<span class="sd">    </span>
+<span class="sd">    This handles inline math content without delimiters.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">expr</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+    
+    <span class="c1"># Handle fractions</span>
+    <span class="n">expr</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">frac\{([^</span><span class="si">{}</span><span class="s1">]*(?:\{[^</span><span class="si">{}</span><span class="s1">]*\}[^</span><span class="si">{}</span><span class="s1">]*)*)\}\{([^</span><span class="si">{}</span><span class="s1">]*(?:\{[^</span><span class="si">{}</span><span class="s1">]*\}[^</span><span class="si">{}</span><span class="s1">]*)*)\}&#39;</span><span class="p">,</span>
+                  <span class="n">_handle_fraction</span><span class="p">,</span> <span class="n">expr</span><span class="p">)</span>
+    
+    <span class="c1"># Handle roots</span>
+    <span class="n">expr</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">sqrt\[([^\]]*)\]\{([^</span><span class="si">{}</span><span class="s1">]*(?:\{[^</span><span class="si">{}</span><span class="s1">]*\}[^</span><span class="si">{}</span><span class="s1">]*)*)\}&#39;</span><span class="p">,</span> <span class="n">_handle_sqrt</span><span class="p">,</span> <span class="n">expr</span><span class="p">)</span>
+    <span class="n">expr</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">sqrt\{([^</span><span class="si">{}</span><span class="s1">]*(?:\{[^</span><span class="si">{}</span><span class="s1">]*\}[^</span><span class="si">{}</span><span class="s1">]*)*)\}&#39;</span><span class="p">,</span> <span class="n">_handle_sqrt</span><span class="p">,</span> <span class="n">expr</span><span class="p">)</span>
+    
+    <span class="c1"># Handle sums, products, integrals with limits</span>
+    <span class="n">expr</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">(sum|prod|int)_\{([^}]*)\}\^\{([^}]*)\}&#39;</span><span class="p">,</span> <span class="n">_handle_sum_prod_int</span><span class="p">,</span> <span class="n">expr</span><span class="p">)</span>
+    <span class="n">expr</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">(sum|prod|int)_\{([^}]*)\}&#39;</span><span class="p">,</span> <span class="n">_handle_sum_prod_int</span><span class="p">,</span> <span class="n">expr</span><span class="p">)</span>
+    <span class="n">expr</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">(sum|prod|int)\^\{([^}]*)\}&#39;</span><span class="p">,</span> <span class="n">_handle_sum_prod_int</span><span class="p">,</span> <span class="n">expr</span><span class="p">)</span>
+    
+    <span class="c1"># Tokenize and process</span>
+    <span class="n">tokens</span> <span class="o">=</span> <span class="n">_tokenize_latex</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
+    <span class="n">output</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+    
+    <span class="k">while</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">):</span>
+        <span class="n">token</span> <span class="o">=</span> <span class="n">tokens</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        
+        <span class="k">if</span> <span class="n">token</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">token</span> <span class="ow">in</span> <span class="n">MATH_OPERATORS</span><span class="p">:</span>
+            <span class="n">output</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">MATH_OPERATORS</span><span class="p">[</span><span class="n">token</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="n">token</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">&#39;</span><span class="p">):</span>
+            <span class="c1"># Greek letters and other commands</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">token</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+            <span class="n">output</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GREEK_MAPPING</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">token</span> <span class="o">==</span> <span class="s1">&#39;^&#39;</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">):</span>
+            <span class="n">output</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_parse_superscript</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]))</span>
+            <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">elif</span> <span class="n">token</span> <span class="o">==</span> <span class="s1">&#39;_&#39;</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">):</span>
+            <span class="n">output</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_parse_subscript</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]))</span>
+            <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">elif</span> <span class="n">token</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;{&#39;</span><span class="p">,</span> <span class="s1">&#39;}&#39;</span><span class="p">]:</span>
+            <span class="k">pass</span>  <span class="c1"># Ignore braces</span>
+        <span class="k">elif</span> <span class="n">token</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;(&#39;</span><span class="p">,</span> <span class="s1">&#39;)&#39;</span><span class="p">]:</span>
+            <span class="n">output</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;open parenthesis&quot;</span> <span class="k">if</span> <span class="n">token</span> <span class="o">==</span> <span class="s1">&#39;(&#39;</span> <span class="k">else</span> <span class="s2">&quot;close parenthesis&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">token</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;[&#39;</span><span class="p">,</span> <span class="s1">&#39;]&#39;</span><span class="p">]:</span>
+            <span class="n">output</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;open bracket&quot;</span> <span class="k">if</span> <span class="n">token</span> <span class="o">==</span> <span class="s1">&#39;[&#39;</span> <span class="k">else</span> <span class="s2">&quot;close bracket&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">token</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;+&#39;</span><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="s1">&#39;=&#39;</span><span class="p">,</span> <span class="s1">&#39;&lt;&#39;</span><span class="p">,</span> <span class="s1">&#39;&gt;&#39;</span><span class="p">,</span> <span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="s1">&#39;*&#39;</span><span class="p">,</span> <span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="s1">&#39;|&#39;</span><span class="p">,</span> <span class="s1">&#39;!&#39;</span><span class="p">]:</span>
+            <span class="n">symbol_map</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;+&#39;</span><span class="p">:</span> <span class="s1">&#39;plus&#39;</span><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">:</span> <span class="s1">&#39;minus&#39;</span><span class="p">,</span> <span class="s1">&#39;=&#39;</span><span class="p">:</span> <span class="s1">&#39;equals&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;&lt;&#39;</span><span class="p">:</span> <span class="s1">&#39;less than&#39;</span><span class="p">,</span> <span class="s1">&#39;&gt;&#39;</span><span class="p">:</span> <span class="s1">&#39;greater than&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;/&#39;</span><span class="p">:</span> <span class="s1">&#39;divided by&#39;</span><span class="p">,</span> <span class="s1">&#39;*&#39;</span><span class="p">:</span> <span class="s1">&#39;times&#39;</span><span class="p">,</span> <span class="s1">&#39;,&#39;</span><span class="p">:</span> <span class="s1">&#39;comma&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;|&#39;</span><span class="p">:</span> <span class="s1">&#39;absolute value&#39;</span><span class="p">,</span> <span class="s1">&#39;!&#39;</span><span class="p">:</span> <span class="s1">&#39;factorial&#39;</span>
+            <span class="p">}</span>
+            <span class="n">output</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">symbol_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="n">token</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">output</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_speak_variable</span><span class="p">(</span><span class="n">token</span><span class="p">))</span>
+        
+        <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+    
+    <span class="k">return</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">output</span><span class="p">))</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_tokenize_latex</span><span class="p">(</span><span class="n">expr</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Tokenize LaTeX expression.&quot;&quot;&quot;</span>
+    <span class="n">tokens</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+    
+    <span class="k">while</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">expr</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">expr</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;</span><span class="se">\\</span><span class="s1">&#39;</span><span class="p">:</span>
+            <span class="c1"># LaTeX command</span>
+            <span class="n">j</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="k">while</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span> <span class="ow">and</span> <span class="n">expr</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">isalpha</span><span class="p">():</span>
+                <span class="n">j</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">tokens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">j</span><span class="p">])</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="n">j</span>
+        <span class="k">elif</span> <span class="n">expr</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;^&#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">,</span> <span class="s1">&#39;{&#39;</span><span class="p">,</span> <span class="s1">&#39;}&#39;</span><span class="p">,</span> <span class="s1">&#39;(&#39;</span><span class="p">,</span> <span class="s1">&#39;)&#39;</span><span class="p">,</span> <span class="s1">&#39;[&#39;</span><span class="p">,</span> <span class="s1">&#39;]&#39;</span><span class="p">,</span> <span class="s1">&#39;+&#39;</span><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="s1">&#39;=&#39;</span><span class="p">,</span>
+                         <span class="s1">&#39;&lt;&#39;</span><span class="p">,</span> <span class="s1">&#39;&gt;&#39;</span><span class="p">,</span> <span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="s1">&#39;*&#39;</span><span class="p">,</span> <span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="s1">&#39;|&#39;</span><span class="p">,</span> <span class="s1">&#39;!&#39;</span><span class="p">,</span> <span class="s1">&#39;?&#39;</span><span class="p">,</span> <span class="s1">&#39;:&#39;</span><span class="p">,</span> <span class="s1">&#39;;&#39;</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="p">}:</span>
+            <span class="n">tokens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">elif</span> <span class="n">expr</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">isspace</span><span class="p">():</span>
+            <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Collect alphanumeric sequences</span>
+            <span class="n">j</span> <span class="o">=</span> <span class="n">i</span>
+            <span class="k">while</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">isalnum</span><span class="p">()</span> <span class="ow">or</span> <span class="n">expr</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;_&#39;</span><span class="p">):</span>
+                <span class="n">j</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">j</span> <span class="o">&gt;</span> <span class="n">i</span><span class="p">:</span>
+                <span class="n">tokens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">j</span><span class="p">])</span>
+                <span class="n">i</span> <span class="o">=</span> <span class="n">j</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">tokens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+    
+    <span class="k">return</span> <span class="n">tokens</span>
+
+
+<div class="viewcode-block" id="extract_latex_environments">
+<a class="viewcode-back" href="../../index.html#paper_voice.latex_processor.extract_latex_environments">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">extract_latex_environments</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extract LaTeX environments like equation, align, etc.&quot;&quot;&quot;</span>
+    <span class="n">environments</span> <span class="o">=</span> <span class="p">{}</span>
+    
+    <span class="c1"># Common math environments</span>
+    <span class="n">math_envs</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;equation&#39;</span><span class="p">,</span> <span class="s1">&#39;align&#39;</span><span class="p">,</span> <span class="s1">&#39;gather&#39;</span><span class="p">,</span> <span class="s1">&#39;multline&#39;</span><span class="p">,</span> <span class="s1">&#39;eqnarray&#39;</span><span class="p">,</span> 
+                 <span class="s1">&#39;array&#39;</span><span class="p">,</span> <span class="s1">&#39;matrix&#39;</span><span class="p">,</span> <span class="s1">&#39;pmatrix&#39;</span><span class="p">,</span> <span class="s1">&#39;bmatrix&#39;</span><span class="p">,</span> <span class="s1">&#39;vmatrix&#39;</span><span class="p">,</span> <span class="s1">&#39;Vmatrix&#39;</span><span class="p">]</span>
+    
+    <span class="k">for</span> <span class="n">env</span> <span class="ow">in</span> <span class="n">math_envs</span><span class="p">:</span>
+        <span class="n">pattern</span> <span class="o">=</span> <span class="sa">rf</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">begin\</span><span class="se">{{</span><span class="si">{</span><span class="n">env</span><span class="si">}</span><span class="s1">\*?\</span><span class="se">}}</span><span class="s1">(.*?)</span><span class="se">\\</span><span class="s1">end\</span><span class="se">{{</span><span class="si">{</span><span class="n">env</span><span class="si">}</span><span class="s1">\*?\</span><span class="se">}}</span><span class="s1">&#39;</span>
+        <span class="n">matches</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">re</span><span class="o">.</span><span class="n">finditer</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">DOTALL</span><span class="p">):</span>
+            <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">span</span><span class="p">()</span>
+            <span class="n">content</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="n">matches</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">content</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">matches</span><span class="p">:</span>
+            <span class="n">environments</span><span class="p">[</span><span class="n">env</span><span class="p">]</span> <span class="o">=</span> <span class="n">matches</span>
+    
+    <span class="k">return</span> <span class="n">environments</span></div>
+
+
+
+<div class="viewcode-block" id="process_latex_environments">
+<a class="viewcode-back" href="../../index.html#paper_voice.latex_processor.process_latex_environments">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">process_latex_environments</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">environments</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Process LaTeX environments and replace with spoken equivalents.&quot;&quot;&quot;</span>
+    <span class="c1"># Sort all environments by position (reverse order for replacement)</span>
+    <span class="n">all_envs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">env_name</span><span class="p">,</span> <span class="n">env_list</span> <span class="ow">in</span> <span class="n">environments</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">content</span> <span class="ow">in</span> <span class="n">env_list</span><span class="p">:</span>
+            <span class="n">all_envs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">env_name</span><span class="p">,</span> <span class="n">content</span><span class="p">))</span>
+    
+    <span class="n">all_envs</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    
+    <span class="c1"># Replace environments with spoken equivalents</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">text</span>
+    <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">env_name</span><span class="p">,</span> <span class="n">content</span> <span class="ow">in</span> <span class="n">all_envs</span><span class="p">:</span>
+        <span class="n">spoken_content</span> <span class="o">=</span> <span class="n">latex_math_to_speech</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">env_name</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;equation&#39;</span><span class="p">]:</span>
+            <span class="n">replacement</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Equation: </span><span class="si">{</span><span class="n">spoken_content</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">elif</span> <span class="n">env_name</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;align&#39;</span><span class="p">,</span> <span class="s1">&#39;gather&#39;</span><span class="p">,</span> <span class="s1">&#39;multline&#39;</span><span class="p">]:</span>
+            <span class="n">replacement</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Aligned equation: </span><span class="si">{</span><span class="n">spoken_content</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">elif</span> <span class="n">env_name</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;matrix&#39;</span><span class="p">,</span> <span class="s1">&#39;pmatrix&#39;</span><span class="p">,</span> <span class="s1">&#39;bmatrix&#39;</span><span class="p">,</span> <span class="s1">&#39;vmatrix&#39;</span><span class="p">,</span> <span class="s1">&#39;Vmatrix&#39;</span><span class="p">]:</span>
+            <span class="n">replacement</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Matrix: </span><span class="si">{</span><span class="n">spoken_content</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">replacement</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Mathematical expression: </span><span class="si">{</span><span class="n">spoken_content</span><span class="si">}</span><span class="s2">&quot;</span>
+        
+        <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="p">[:</span><span class="n">start</span><span class="p">]</span> <span class="o">+</span> <span class="n">replacement</span> <span class="o">+</span> <span class="n">result</span><span class="p">[</span><span class="n">end</span><span class="p">:]</span>
+    
+    <span class="k">return</span> <span class="n">result</span></div>
+
+
+
+<div class="viewcode-block" id="process_inline_and_display_math">
+<a class="viewcode-back" href="../../index.html#paper_voice.latex_processor.process_inline_and_display_math">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">process_inline_and_display_math</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">api_key</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">use_llm</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Process inline and display math in all LaTeX formats.&quot;&quot;&quot;</span>
+    
+    <span class="c1"># Define all math patterns (display and inline)</span>
+    <span class="n">math_patterns</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="c1"># Display math patterns</span>
+        <span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\$\$(.*?)\$\$&#39;</span><span class="p">,</span> <span class="s1">&#39;display&#39;</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">DOTALL</span><span class="p">),</span>           <span class="c1"># $$...$$</span>
+        <span class="p">(</span><span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">\[(.*?)</span><span class="se">\\</span><span class="s1">\]&#39;</span><span class="p">,</span> <span class="s1">&#39;display&#39;</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">DOTALL</span><span class="p">),</span>           <span class="c1"># \[...\]</span>
+        
+        <span class="c1"># Inline math patterns  </span>
+        <span class="p">(</span><span class="sa">r</span><span class="s1">&#39;(?&lt;!\$)\$([^$]+?)\$(?!\$)&#39;</span><span class="p">,</span> <span class="s1">&#39;inline&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>        <span class="c1"># $...$ (not display)</span>
+        <span class="p">(</span><span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">\((.*?)</span><span class="se">\\</span><span class="s1">\)&#39;</span><span class="p">,</span> <span class="s1">&#39;inline&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>                    <span class="c1"># \(...\)</span>
+    <span class="p">]</span>
+    
+    <span class="k">if</span> <span class="n">use_llm</span> <span class="ow">and</span> <span class="n">api_key</span><span class="p">:</span>
+        <span class="c1"># Use simple LLM enhancer for high-quality math explanations</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">.simple_llm_enhancer</span><span class="w"> </span><span class="kn">import</span> <span class="n">enhance_document_simple</span>
+            
+            <span class="c1"># Use the simple LLM enhancer to process the entire text</span>
+            <span class="c1"># This will handle all math expressions at once</span>
+            <span class="n">enhanced_text</span> <span class="o">=</span> <span class="n">enhance_document_simple</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">api_key</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">enhanced_text</span>
+            
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="c1"># Fall back to basic processing if LLM enhancement fails</span>
+            <span class="n">use_llm</span> <span class="o">=</span> <span class="kc">False</span>
+    
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">use_llm</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">api_key</span><span class="p">:</span>
+        <span class="c1"># Use basic rule-based math conversion</span>
+        <span class="k">for</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">math_type</span><span class="p">,</span> <span class="n">flags</span> <span class="ow">in</span> <span class="n">math_patterns</span><span class="p">:</span>
+            <span class="k">def</span><span class="w"> </span><span class="nf">create_basic_replacer</span><span class="p">(</span><span class="n">math_type</span><span class="p">):</span>
+                <span class="k">def</span><span class="w"> </span><span class="nf">replace_math_basic</span><span class="p">(</span><span class="n">match</span><span class="p">):</span>
+                    <span class="n">content</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">content</span><span class="p">:</span>  <span class="c1"># Skip empty expressions</span>
+                        <span class="k">return</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                    
+                    <span class="n">spoken</span> <span class="o">=</span> <span class="n">latex_math_to_speech</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">math_type</span> <span class="o">==</span> <span class="s1">&#39;display&#39;</span><span class="p">:</span>
+                        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Display equation: </span><span class="si">{</span><span class="n">spoken</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">return</span> <span class="n">spoken</span>
+                <span class="k">return</span> <span class="n">replace_math_basic</span>
+            
+            <span class="n">text</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">create_basic_replacer</span><span class="p">(</span><span class="n">math_type</span><span class="p">),</span> <span class="n">text</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="n">flags</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="n">text</span></div>
+
+
+
+<div class="viewcode-block" id="extract_figures_and_tables">
+<a class="viewcode-back" href="../../index.html#paper_voice.latex_processor.extract_figures_and_tables">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">extract_figures_and_tables</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extract figure and table information from LaTeX.&quot;&quot;&quot;</span>
+    <span class="n">figures</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">tables</span> <span class="o">=</span> <span class="p">[]</span>
+    
+    <span class="c1"># Extract figure environments</span>
+    <span class="n">fig_pattern</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">begin\{figure\*?\}(.*?)</span><span class="se">\\</span><span class="s1">end\{figure\*?\}&#39;</span>
+    <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">re</span><span class="o">.</span><span class="n">finditer</span><span class="p">(</span><span class="n">fig_pattern</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">DOTALL</span><span class="p">):</span>
+        <span class="n">content</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="c1"># Look for caption</span>
+        <span class="n">caption_match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">caption\{([^</span><span class="si">{}</span><span class="s1">]*(?:\{[^</span><span class="si">{}</span><span class="s1">]*\}[^</span><span class="si">{}</span><span class="s1">]*)*)\}&#39;</span><span class="p">,</span> <span class="n">content</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">caption_match</span><span class="p">:</span>
+            <span class="n">caption</span> <span class="o">=</span> <span class="n">caption_match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">figures</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">caption</span><span class="p">,</span> <span class="s2">&quot;Figure content not processed&quot;</span><span class="p">))</span>
+    
+    <span class="c1"># Extract table environments</span>
+    <span class="n">table_pattern</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">begin\{table\*?\}(.*?)</span><span class="se">\\</span><span class="s1">end\{table\*?\}&#39;</span>
+    <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">re</span><span class="o">.</span><span class="n">finditer</span><span class="p">(</span><span class="n">table_pattern</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">DOTALL</span><span class="p">):</span>
+        <span class="n">content</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="c1"># Look for caption</span>
+        <span class="n">caption_match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">caption\{([^</span><span class="si">{}</span><span class="s1">]*(?:\{[^</span><span class="si">{}</span><span class="s1">]*\}[^</span><span class="si">{}</span><span class="s1">]*)*)\}&#39;</span><span class="p">,</span> <span class="n">content</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">caption_match</span><span class="p">:</span>
+            <span class="n">caption</span> <span class="o">=</span> <span class="n">caption_match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="c1"># Extract tabular content if present</span>
+            <span class="n">tabular_match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">begin\{tabular\}.*?\{(.*?)\}(.*?)</span><span class="se">\\</span><span class="s1">end\{tabular\}&#39;</span><span class="p">,</span> 
+                                    <span class="n">content</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">DOTALL</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">tabular_match</span><span class="p">:</span>
+                <span class="n">table_content</span> <span class="o">=</span> <span class="n">tabular_match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+                <span class="n">tables</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">caption</span><span class="p">,</span> <span class="n">table_content</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">tables</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">caption</span><span class="p">,</span> <span class="s2">&quot;Table content not extracted&quot;</span><span class="p">))</span>
+    
+    <span class="k">return</span> <span class="n">figures</span><span class="p">,</span> <span class="n">tables</span></div>
+
+
+
+<div class="viewcode-block" id="clean_latex_commands">
+<a class="viewcode-back" href="../../index.html#paper_voice.latex_processor.clean_latex_commands">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">clean_latex_commands</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Remove or replace common LaTeX formatting commands.&quot;&quot;&quot;</span>
+    <span class="c1"># Remove common formatting commands</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">(textbf|textit|emph|underline|texttt)\{([^</span><span class="si">{}</span><span class="s1">]*)\}&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;\2&#39;</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">(bf|it|em|tt|rm|sf)\b&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>
+    
+    <span class="c1"># Handle sections and subsections</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">section\*?\{([^}]*)\}&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;Section: \1&#39;</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">subsection\*?\{([^}]*)\}&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;Subsection: \1&#39;</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">subsubsection\*?\{([^}]*)\}&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;Subsubsection: \1&#39;</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>
+    
+    <span class="c1"># Remove other common commands</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">(maketitle|tableofcontents|newpage|clearpage)&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\\\</span><span class="s1">(?:\[[^\]]*\])?&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>  <span class="c1"># Line breaks</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">[vh]space\{[^}]*\}&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>  <span class="c1"># Spacing</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">(small|large|Large|LARGE|huge|Huge)&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>  <span class="c1"># Size commands</span>
+    
+    <span class="c1"># Clean up whitespace</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\s+&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    
+    <span class="k">return</span> <span class="n">text</span></div>
+
+
+
+<div class="viewcode-block" id="process_latex_document">
+<a class="viewcode-back" href="../../index.html#paper_voice.latex_processor.process_latex_document">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">process_latex_document</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">summarize_figures</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> 
+                          <span class="n">summarize_tables</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> 
+                          <span class="n">api_key</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                          <span class="n">use_llm_math</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ProcessedContent</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Process a complete LaTeX document.&quot;&quot;&quot;</span>
+    
+    <span class="c1"># Extract metadata (title, author, etc.)</span>
+    <span class="n">metadata</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">title_match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">title\{([^</span><span class="si">{}</span><span class="s1">]*(?:\{[^</span><span class="si">{}</span><span class="s1">]*\}[^</span><span class="si">{}</span><span class="s1">]*)*)\}&#39;</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">title_match</span><span class="p">:</span>
+        <span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;title&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">clean_latex_commands</span><span class="p">(</span><span class="n">title_match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+    
+    <span class="n">author_match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">author\{([^</span><span class="si">{}</span><span class="s1">]*(?:\{[^</span><span class="si">{}</span><span class="s1">]*\}[^</span><span class="si">{}</span><span class="s1">]*)*)\}&#39;</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">author_match</span><span class="p">:</span>
+        <span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;author&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">clean_latex_commands</span><span class="p">(</span><span class="n">author_match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+    
+    <span class="c1"># Extract figures and tables before processing math</span>
+    <span class="n">figures</span><span class="p">,</span> <span class="n">tables</span> <span class="o">=</span> <span class="n">extract_figures_and_tables</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+    
+    <span class="c1"># Process figures and tables if summarization is requested</span>
+    <span class="n">processed_figures</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">processed_tables</span> <span class="o">=</span> <span class="p">[]</span>
+    
+    <span class="k">if</span> <span class="n">summarize_figures</span> <span class="ow">and</span> <span class="n">api_key</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">.figure_table_summarizer</span><span class="w"> </span><span class="kn">import</span> <span class="n">summarize_figure_with_llm</span>
+            <span class="k">for</span> <span class="n">caption</span><span class="p">,</span> <span class="n">content</span> <span class="ow">in</span> <span class="n">figures</span><span class="p">:</span>
+                <span class="n">enhanced_caption</span> <span class="o">=</span> <span class="n">summarize_figure_with_llm</span><span class="p">(</span><span class="n">caption</span><span class="p">,</span> <span class="n">api_key</span><span class="p">)</span>
+                <span class="n">processed_figures</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">enhanced_caption</span><span class="p">,</span> <span class="n">content</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">processed_figures</span> <span class="o">=</span> <span class="n">figures</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">processed_figures</span> <span class="o">=</span> <span class="n">figures</span>
+    
+    <span class="k">if</span> <span class="n">summarize_tables</span> <span class="ow">and</span> <span class="n">api_key</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">.figure_table_summarizer</span><span class="w"> </span><span class="kn">import</span> <span class="n">summarize_table_with_llm</span>
+            <span class="k">for</span> <span class="n">caption</span><span class="p">,</span> <span class="n">content</span> <span class="ow">in</span> <span class="n">tables</span><span class="p">:</span>
+                <span class="n">enhanced_caption</span> <span class="o">=</span> <span class="n">summarize_table_with_llm</span><span class="p">(</span><span class="n">caption</span><span class="p">,</span> <span class="n">api_key</span><span class="p">)</span>
+                <span class="n">processed_tables</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">enhanced_caption</span><span class="p">,</span> <span class="n">content</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">processed_tables</span> <span class="o">=</span> <span class="n">tables</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">processed_tables</span> <span class="o">=</span> <span class="n">tables</span>
+    
+    <span class="c1"># Remove figure and table environments from main text</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">begin\{figure\*?\}.*?</span><span class="se">\\</span><span class="s1">end\{figure\*?\}&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">DOTALL</span><span class="p">)</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">begin\{table\*?\}.*?</span><span class="se">\\</span><span class="s1">end\{table\*?\}&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">DOTALL</span><span class="p">)</span>
+    
+    <span class="c1"># Extract and process LaTeX environments</span>
+    <span class="n">environments</span> <span class="o">=</span> <span class="n">extract_latex_environments</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">process_latex_environments</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">environments</span><span class="p">)</span>
+    
+    <span class="c1"># Process inline and display math</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">process_inline_and_display_math</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">api_key</span><span class="p">,</span> <span class="n">use_llm_math</span><span class="p">)</span>
+    
+    <span class="c1"># Clean remaining LaTeX commands</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">clean_latex_commands</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+    
+    <span class="c1"># Extract standalone equations for reference</span>
+    <span class="n">equations</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">env_name</span><span class="p">,</span> <span class="n">env_list</span> <span class="ow">in</span> <span class="n">environments</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">env_name</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;equation&#39;</span><span class="p">,</span> <span class="s1">&#39;align&#39;</span><span class="p">,</span> <span class="s1">&#39;gather&#39;</span><span class="p">]:</span>
+            <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">content</span> <span class="ow">in</span> <span class="n">env_list</span><span class="p">:</span>
+                <span class="n">equations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">latex_math_to_speech</span><span class="p">(</span><span class="n">content</span><span class="p">))</span>
+    
+    <span class="k">return</span> <span class="n">ProcessedContent</span><span class="p">(</span>
+        <span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span>
+        <span class="n">figures</span><span class="o">=</span><span class="n">processed_figures</span><span class="p">,</span>
+        <span class="n">tables</span><span class="o">=</span><span class="n">processed_tables</span><span class="p">,</span>
+        <span class="n">equations</span><span class="o">=</span><span class="n">equations</span><span class="p">,</span>
+        <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="process_markdown_with_math">
+<a class="viewcode-back" href="../../index.html#paper_voice.latex_processor.process_markdown_with_math">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">process_markdown_with_math</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">api_key</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">use_llm</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Process Markdown text with LaTeX math expressions.&quot;&quot;&quot;</span>
+    <span class="c1"># Process LaTeX math in markdown</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">process_inline_and_display_math</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">api_key</span><span class="p">,</span> <span class="n">use_llm</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">text</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Gaurav Sood.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

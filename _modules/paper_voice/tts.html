@@ -1,0 +1,381 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>paper_voice.tts &mdash; Paper Voice 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Paper Voice
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Paper Voice</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">paper_voice.tts</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for paper_voice.tts</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Abstractions for synthesising speech from text.</span>
+
+<span class="sd">This module exposes a simple API over two different TTS backends:</span>
+
+<span class="sd">1. **Offline TTS via `pyttsx3`**: Available out of the box and does not</span>
+<span class="sd">   require network access. Produces a WAV file. To convert to MP3, this</span>
+<span class="sd">   module uses `pydub`, which requires that ``ffmpeg`` be installed on</span>
+<span class="sd">   the system. On many Linux distributions you can install ffmpeg via</span>
+<span class="sd">   your package manager.</span>
+
+<span class="sd">2. **OpenAI Text‑to‑Speech API**: Requires a valid API key. Produces an</span>
+<span class="sd">   MP3 directly. The OpenAI API currently supports a limited set of</span>
+<span class="sd">   voices and languages but generally yields higher quality output.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
+
+<span class="c1"># Filter out pydub SyntaxWarnings for Python 3.13+ compatibility before import</span>
+<span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="ne">SyntaxWarning</span><span class="p">,</span> <span class="n">module</span><span class="o">=</span><span class="s2">&quot;pydub.utils&quot;</span><span class="p">)</span>
+<span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="s2">&quot;invalid escape sequence&quot;</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="ne">SyntaxWarning</span><span class="p">)</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">pyttsx3</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">pyttsx3</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># type: ignore</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">openai</span><span class="w"> </span><span class="kn">import</span> <span class="n">OpenAI</span>
+    <span class="n">openai_available</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">OpenAI</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># type: ignore</span>
+    <span class="n">openai_available</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">pydub</span><span class="w"> </span><span class="kn">import</span> <span class="n">AudioSegment</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">AudioSegment</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># type: ignore</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_ensure_ffmpeg</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Ensure that ffmpeg is available for pydub MP3 conversion.</span>
+
+<span class="sd">    If ffmpeg is not available, this function attempts to set the</span>
+<span class="sd">    ``AudioSegment.converter`` path to a default location. If conversion</span>
+<span class="sd">    fails later, the user should install ffmpeg.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">AudioSegment</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span>
+    <span class="c1"># On many systems, ffmpeg is available in PATH. If not, you can set</span>
+    <span class="c1"># AudioSegment.converter directly. Here we simply rely on default.</span>
+    <span class="k">pass</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_split_text_for_tts</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">max_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4000</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Split text into chunks for TTS processing.</span>
+<span class="sd">    </span>
+<span class="sd">    Splits text at sentence boundaries to avoid cutting off in the middle of sentences.</span>
+<span class="sd">    OpenAI TTS has a 4096 character limit, so we use 4000 to be safe.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">text</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">]</span>
+    
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">text</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">max_length</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">text</span><span class="p">]</span>
+    
+    <span class="n">chunks</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">current_chunk</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    
+    <span class="c1"># Split by sentences first - use &#39;. &#39; to preserve sentence structure</span>
+    <span class="n">sentences</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;. &#39;</span><span class="p">)</span>
+    
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">sentence</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sentences</span><span class="p">):</span>
+        <span class="c1"># Add back the period and space except for the last sentence</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">sentences</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">full_sentence</span> <span class="o">=</span> <span class="n">sentence</span> <span class="o">+</span> <span class="s1">&#39;. &#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">full_sentence</span> <span class="o">=</span> <span class="n">sentence</span>
+        
+        <span class="c1"># Check if adding this sentence would exceed the limit</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">current_chunk</span> <span class="o">+</span> <span class="n">full_sentence</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">max_length</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">current_chunk</span><span class="p">:</span>  <span class="c1"># If we have content, save it</span>
+                <span class="n">chunks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">current_chunk</span><span class="p">)</span>
+                <span class="n">current_chunk</span> <span class="o">=</span> <span class="n">full_sentence</span>
+            <span class="k">else</span><span class="p">:</span>  <span class="c1"># Single sentence is too long, split by words</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">full_sentence</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">max_length</span><span class="p">:</span>
+                    <span class="c1"># Split very long content character by character if needed</span>
+                    <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">full_sentence</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">max_length</span><span class="p">:</span>
+                        <span class="n">chunks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">full_sentence</span><span class="p">[:</span><span class="n">max_length</span><span class="p">])</span>
+                        <span class="n">full_sentence</span> <span class="o">=</span> <span class="n">full_sentence</span><span class="p">[</span><span class="n">max_length</span><span class="p">:]</span>
+                    <span class="k">if</span> <span class="n">full_sentence</span><span class="p">:</span>
+                        <span class="n">current_chunk</span> <span class="o">=</span> <span class="n">full_sentence</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">current_chunk</span> <span class="o">=</span> <span class="n">full_sentence</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">current_chunk</span> <span class="o">+=</span> <span class="n">full_sentence</span>
+    
+    <span class="k">if</span> <span class="n">current_chunk</span><span class="p">:</span>
+        <span class="n">chunks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">current_chunk</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="n">chunks</span>
+
+
+<div class="viewcode-block" id="synthesize_speech_chunked">
+<a class="viewcode-back" href="../../index.html#paper_voice.tts.synthesize_speech_chunked">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">synthesize_speech_chunked</span><span class="p">(</span>
+    <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">output_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">voice</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="n">rate</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">200</span><span class="p">,</span>
+    <span class="n">use_openai</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">api_key</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">model</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;tts-1&quot;</span><span class="p">,</span>
+    <span class="n">openai_voice</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;alloy&quot;</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Synthesize speech with automatic text chunking for long texts.</span>
+<span class="sd">    </span>
+<span class="sd">    This function handles texts longer than the OpenAI TTS limit by splitting</span>
+<span class="sd">    them into chunks and concatenating the audio files.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">use_openai</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">text</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">4000</span><span class="p">:</span>
+        <span class="c1"># Split text into chunks</span>
+        <span class="n">chunks</span> <span class="o">=</span> <span class="n">_split_text_for_tts</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">chunks</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># No splitting needed, use regular function</span>
+            <span class="k">return</span> <span class="n">synthesize_speech</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">output_path</span><span class="p">,</span> <span class="n">voice</span><span class="p">,</span> <span class="n">rate</span><span class="p">,</span> <span class="n">use_openai</span><span class="p">,</span> 
+                                   <span class="n">api_key</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">openai_voice</span><span class="p">)</span>
+        
+        <span class="c1"># Generate audio for each chunk</span>
+        <span class="n">temp_files</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">temp_dir</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;tts_chunks_&quot;</span><span class="p">)</span>
+        
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">chunks</span><span class="p">):</span>
+                <span class="n">chunk_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;chunk_</span><span class="si">{</span><span class="n">i</span><span class="si">:</span><span class="s2">03d</span><span class="si">}</span><span class="s2">.mp3&quot;</span><span class="p">)</span>
+                <span class="n">synthesize_speech</span><span class="p">(</span><span class="n">chunk</span><span class="p">,</span> <span class="n">chunk_path</span><span class="p">,</span> <span class="n">voice</span><span class="p">,</span> <span class="n">rate</span><span class="p">,</span> <span class="n">use_openai</span><span class="p">,</span>
+                               <span class="n">api_key</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">openai_voice</span><span class="p">)</span>
+                <span class="n">temp_files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">chunk_path</span><span class="p">)</span>
+            
+            <span class="c1"># Concatenate audio files</span>
+            <span class="k">if</span> <span class="n">AudioSegment</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;pydub is required for concatenating audio chunks&quot;</span><span class="p">)</span>
+            
+            <span class="n">combined</span> <span class="o">=</span> <span class="n">AudioSegment</span><span class="o">.</span><span class="n">empty</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">temp_file</span> <span class="ow">in</span> <span class="n">temp_files</span><span class="p">:</span>
+                <span class="n">chunk_audio</span> <span class="o">=</span> <span class="n">AudioSegment</span><span class="o">.</span><span class="n">from_mp3</span><span class="p">(</span><span class="n">temp_file</span><span class="p">)</span>
+                <span class="n">combined</span> <span class="o">+=</span> <span class="n">chunk_audio</span>
+                <span class="c1"># Add small pause between chunks</span>
+                <span class="n">combined</span> <span class="o">+=</span> <span class="n">AudioSegment</span><span class="o">.</span><span class="n">silent</span><span class="p">(</span><span class="n">duration</span><span class="o">=</span><span class="mi">500</span><span class="p">)</span>  <span class="c1"># 500ms pause</span>
+            
+            <span class="c1"># Export final file</span>
+            <span class="n">combined</span><span class="o">.</span><span class="n">export</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;mp3&quot;</span><span class="p">)</span>
+            
+            <span class="k">return</span> <span class="n">output_path</span>
+            
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="c1"># Clean up temporary files</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">shutil</span>
+            <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">,</span> <span class="n">ignore_errors</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Use regular synthesis</span>
+        <span class="k">return</span> <span class="n">synthesize_speech</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">output_path</span><span class="p">,</span> <span class="n">voice</span><span class="p">,</span> <span class="n">rate</span><span class="p">,</span> <span class="n">use_openai</span><span class="p">,</span>
+                               <span class="n">api_key</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">openai_voice</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="synthesize_speech">
+<a class="viewcode-back" href="../../index.html#paper_voice.tts.synthesize_speech">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">synthesize_speech</span><span class="p">(</span>
+    <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">output_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">voice</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="n">rate</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">200</span><span class="p">,</span>
+    <span class="n">use_openai</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">api_key</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">model</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;tts-1&quot;</span><span class="p">,</span>
+    <span class="n">openai_voice</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;alloy&quot;</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Synthesize speech from text and write it to a file.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    text: str</span>
+<span class="sd">        The input text to speak.</span>
+<span class="sd">    output_path: str</span>
+<span class="sd">        Path where the audio file should be written. The file extension</span>
+<span class="sd">        determines the format. For offline synthesis this should end</span>
+<span class="sd">        with ``.wav``; for OpenAI TTS this should end with ``.mp3``.</span>
+<span class="sd">    voice: str, optional</span>
+<span class="sd">        A substring of the desired voice name when using ``pyttsx3``.</span>
+<span class="sd">        On Windows you might use &#39;Zira&#39; or &#39;David&#39;, on macOS &#39;Samantha&#39;</span>
+<span class="sd">        etc. If empty, the default voice is used.</span>
+<span class="sd">    rate: int, optional</span>
+<span class="sd">        Words per minute for offline synthesis. Typical values are 150–250.</span>
+<span class="sd">    use_openai: bool, optional</span>
+<span class="sd">        If true, attempts to synthesise via the OpenAI API. Requires</span>
+<span class="sd">        ``openai`` package and a valid API key. The output format will</span>
+<span class="sd">        always be MP3 in this mode.</span>
+<span class="sd">    api_key: str, optional</span>
+<span class="sd">        The OpenAI API key to use. If not provided, uses the</span>
+<span class="sd">        ``OPENAI_API_KEY`` environment variable.</span>
+<span class="sd">    model: str, optional</span>
+<span class="sd">        The OpenAI TTS model to use. At time of writing &#39;tts-1&#39; and</span>
+<span class="sd">        &#39;tts-1-hd&#39; are available.</span>
+<span class="sd">    openai_voice: str, optional</span>
+<span class="sd">        The voice name for OpenAI TTS (e.g. &#39;alloy&#39;, &#39;echo&#39;).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str</span>
+<span class="sd">        The path to the generated audio file. In offline mode this may</span>
+<span class="sd">        differ from ``output_path`` if an intermediate WAV is created and</span>
+<span class="sd">        later converted.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    RuntimeError</span>
+<span class="sd">        If required libraries are missing or synthesis fails.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">use_openai</span><span class="p">:</span>
+        <span class="c1"># Use OpenAI TTS</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">openai_available</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;openai package is not installed; cannot use OpenAI TTS.&quot;</span><span class="p">)</span>
+        <span class="n">api_key</span> <span class="o">=</span> <span class="n">api_key</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;OPENAI_API_KEY&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">api_key</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;No OpenAI API key provided for TTS.&quot;</span><span class="p">)</span>
+        <span class="c1"># Send the request</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">client</span> <span class="o">=</span> <span class="n">OpenAI</span><span class="p">(</span><span class="n">api_key</span><span class="o">=</span><span class="n">api_key</span><span class="p">)</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">audio</span><span class="o">.</span><span class="n">speech</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+                <span class="nb">input</span><span class="o">=</span><span class="n">text</span><span class="p">,</span>
+                <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+                <span class="n">voice</span><span class="o">=</span><span class="n">openai_voice</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="c1"># Save the binary MP3</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">output_path</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;OpenAI TTS failed: </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Use offline TTS</span>
+        <span class="k">if</span> <span class="n">pyttsx3</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;pyttsx3 is not installed; cannot use offline TTS.&quot;</span><span class="p">)</span>
+        <span class="n">engine</span> <span class="o">=</span> <span class="n">pyttsx3</span><span class="o">.</span><span class="n">init</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">voice</span><span class="p">:</span>
+            <span class="c1"># Attempt to select a voice matching the substring</span>
+            <span class="n">voices</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">getProperty</span><span class="p">(</span><span class="s1">&#39;voices&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">voices</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">voice</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                    <span class="n">engine</span><span class="o">.</span><span class="n">setProperty</span><span class="p">(</span><span class="s1">&#39;voice&#39;</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+                    <span class="k">break</span>
+        <span class="n">engine</span><span class="o">.</span><span class="n">setProperty</span><span class="p">(</span><span class="s1">&#39;rate&#39;</span><span class="p">,</span> <span class="n">rate</span><span class="p">)</span>
+        <span class="c1"># Determine file extension; offline TTS only writes WAV</span>
+        <span class="n">ext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">output_path</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">ext</span> <span class="o">!=</span> <span class="s1">&#39;.wav&#39;</span><span class="p">:</span>
+            <span class="c1"># We&#39;ll create a temporary WAV and later convert to desired format</span>
+            <span class="n">tmp_dir</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;speech_&quot;</span><span class="p">)</span>
+            <span class="n">tmp_wav</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmp_dir</span><span class="p">,</span> <span class="s2">&quot;out.wav&quot;</span><span class="p">)</span>
+            <span class="n">write_path</span> <span class="o">=</span> <span class="n">tmp_wav</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">write_path</span> <span class="o">=</span> <span class="n">output_path</span>
+        <span class="n">engine</span><span class="o">.</span><span class="n">save_to_file</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">write_path</span><span class="p">)</span>
+        <span class="n">engine</span><span class="o">.</span><span class="n">runAndWait</span><span class="p">()</span>
+        <span class="c1"># Convert to MP3 if needed</span>
+        <span class="k">if</span> <span class="n">ext</span> <span class="o">!=</span> <span class="s1">&#39;.wav&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">AudioSegment</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                    <span class="s2">&quot;pydub is not installed; cannot convert WAV to MP3. &quot;</span>
+                    <span class="s2">&quot;Install pydub and ensure ffmpeg is available.&quot;</span>
+                <span class="p">)</span>
+            <span class="n">_ensure_ffmpeg</span><span class="p">()</span>
+            <span class="n">audio</span> <span class="o">=</span> <span class="n">AudioSegment</span><span class="o">.</span><span class="n">from_wav</span><span class="p">(</span><span class="n">write_path</span><span class="p">)</span>
+            <span class="n">audio</span><span class="o">.</span><span class="n">export</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;mp3&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">output_path</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Gaurav Sood.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
