@@ -55,8 +55,8 @@ def create_audio_from_text(text: str, output_path: str, voice: str = "alloy",
             st.error("No API key provided for TTS")
             return False
             
-        # Use the correct function name and parameters
-        result_path = tts.synthesize_speech(
+        # Use chunked synthesis for long texts
+        result_path = tts.synthesize_speech_chunked(
             text=text,
             output_path=output_path, 
             use_openai=True,
