@@ -54,6 +54,9 @@ def enhance_content_simple(content: str, api_key: str, show_debug: bool = False)
     
     if show_debug:
         st.info(f"🔧 Processing {len(content)} characters with simple LLM enhancement")
+        # Show sample of content being processed
+        sample = content[:200] + "..." if len(content) > 200 else content
+        st.code(f"Sample input: {sample}")
     
     def progress_callback(message):
         if show_debug:
@@ -66,12 +69,26 @@ def enhance_content_simple(content: str, api_key: str, show_debug: bool = False)
         
         if show_debug:
             st.success("✅ Simple LLM enhancement completed!")
+            # Show sample of result
+            result_sample = enhanced_content[:200] + "..." if len(enhanced_content) > 200 else enhanced_content
+            st.code(f"Sample output: {result_sample}")
+            
+            # Check if math was converted
+            has_latex = "\\(" in enhanced_content or "\\[" in enhanced_content
+            if has_latex:
+                st.error("❌ Math NOT converted - LaTeX still present!")
+                st.code(f"Found LaTeX: {[s for s in enhanced_content.split() if '\\\\(' in s or '\\\\[' in s][:5]}")
+            else:
+                st.success("✅ Math appears to be converted!")
         
         return enhanced_content.strip()
     
     except Exception as e:
         error_msg = f"Enhancement failed: {e}"
         st.error(error_msg)
+        if show_debug:
+            import traceback
+            st.code(traceback.format_exc())
         return content
 
 
