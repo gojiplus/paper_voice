@@ -300,23 +300,70 @@ def process_latex_environments(text: str, environments: Dict[str, List[Tuple[int
     return result
 
 
-def process_inline_and_display_math(text: str) -> str:
+def process_inline_and_display_math(text: str, api_key: Optional[str] = None, use_llm: bool = True) -> str:
     """Process inline $...$ and display $$...$$ math."""
-    # Handle display math first ($$...$$)
-    def replace_display_math(match):
-        content = match.group(1)
-        spoken = latex_math_to_speech(content)
-        return f"Display equation: {spoken}"
     
-    text = re.sub(r'\$\$(.*?)\$\$', replace_display_math, text, flags=re.DOTALL)
+    if use_llm and api_key:
+        # Use LLM for high-quality math explanations
+        try:
+            from .llm_math_explainer import explain_math_with_llm_sync
+            
+            # Handle display math first ($$...$$)
+            def replace_display_math_llm(match):
+                content = match.group(1).strip()
+                # Get context around the expression for better explanation
+                start = max(0, match.start() - 200)
+                end = min(len(text), match.end() + 200)
+                context = text[start:end]
+                
+                try:
+                    explanation = explain_math_with_llm_sync(content, api_key, context)
+                    return f" {explanation.natural_explanation} "
+                except Exception:
+                    # Fallback to basic conversion
+                    spoken = latex_math_to_speech(content)
+                    return f"Display equation: {spoken}"
+            
+            text = re.sub(r'\$\$(.*?)\$\$', replace_display_math_llm, text, flags=re.DOTALL)
+            
+            # Handle inline math ($...$)
+            def replace_inline_math_llm(match):
+                content = match.group(1).strip()
+                # Get context for inline math
+                start = max(0, match.start() - 150)
+                end = min(len(text), match.end() + 150)
+                context = text[start:end]
+                
+                try:
+                    explanation = explain_math_with_llm_sync(content, api_key, context)
+                    return f" {explanation.natural_explanation} "
+                except Exception:
+                    # Fallback to basic conversion
+                    spoken = latex_math_to_speech(content)
+                    return spoken
+            
+            text = re.sub(r'(?<!\$)\$([^$]+?)\$(?!\$)', replace_inline_math_llm, text)
+            
+        except ImportError:
+            # Fall back to basic processing if LLM module not available
+            use_llm = False
     
-    # Handle inline math ($...$)
-    def replace_inline_math(match):
-        content = match.group(1)
-        spoken = latex_math_to_speech(content)
-        return spoken
-    
-    text = re.sub(r'(?<!\$)\$([^$]+?)\$(?!\$)', replace_inline_math, text)
+    if not use_llm or not api_key:
+        # Use basic rule-based math conversion
+        def replace_display_math(match):
+            content = match.group(1)
+            spoken = latex_math_to_speech(content)
+            return f"Display equation: {spoken}"
+        
+        text = re.sub(r'\$\$(.*?)\$\$', replace_display_math, text, flags=re.DOTALL)
+        
+        # Handle inline math ($...$)
+        def replace_inline_math(match):
+            content = match.group(1)
+            spoken = latex_math_to_speech(content)
+            return spoken
+        
+        text = re.sub(r'(?<!\$)\$([^$]+?)\$(?!\$)', replace_inline_math, text)
     
     return text
 
@@ -380,9 +427,10 @@ def clean_latex_commands(text: str) -> str:
     return text
 
 
-def process_latex_document(text: str, summarize_figures: bool = False, 
-                          summarize_tables: bool = False, 
-                          api_key: Optional[str] = None) -> ProcessedContent:
+def process_latex_document(text: str, summarize_figures: bool = True, 
+                          summarize_tables: bool = True, 
+                          api_key: Optional[str] = None,
+                          use_llm_math: bool = True) -> ProcessedContent:
     """Process a complete LaTeX document."""
     
     # Extract metadata (title, author, etc.)
@@ -403,16 +451,24 @@ def process_latex_document(text: str, summarize_figures: bool = False,
     processed_tables = []
     
     if summarize_figures and api_key:
-        # Would integrate with figure_table_summarizer here
-        for caption, content in figures:
-            processed_figures.append((caption, "Figure summarization not implemented"))
+        try:
+            from .figure_table_summarizer import summarize_figure_with_llm
+            for caption, content in figures:
+                enhanced_caption = summarize_figure_with_llm(caption, api_key)
+                processed_figures.append((enhanced_caption, content))
+        except Exception:
+            processed_figures = figures
     else:
         processed_figures = figures
     
     if summarize_tables and api_key:
-        # Would integrate with table summarizer here
-        for caption, content in tables:
-            processed_tables.append((caption, content))  # Process table content
+        try:
+            from .figure_table_summarizer import summarize_table_with_llm
+            for caption, content in tables:
+                enhanced_caption = summarize_table_with_llm(caption, api_key)
+                processed_tables.append((enhanced_caption, content))
+        except Exception:
+            processed_tables = tables
     else:
         processed_tables = tables
     
@@ -425,7 +481,7 @@ def process_latex_document(text: str, summarize_figures: bool = False,
     text = process_latex_environments(text, environments)
     
     # Process inline and display math
-    text = process_inline_and_display_math(text)
+    text = process_inline_and_display_math(text, api_key, use_llm_math)
     
     # Clean remaining LaTeX commands
     text = clean_latex_commands(text)
@@ -446,8 +502,8 @@ def process_latex_document(text: str, summarize_figures: bool = False,
     )
 
 
-def process_markdown_with_math(text: str) -> str:
+def process_markdown_with_math(text: str, api_key: Optional[str] = None, use_llm: bool = True) -> str:
     """Process Markdown text with LaTeX math expressions."""
     # Process LaTeX math in markdown
-    text = process_inline_and_display_math(text)
+    text = process_inline_and_display_math(text, api_key, use_llm)
     return text

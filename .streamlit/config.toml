@@ -1,0 +1,17 @@
+[server]
+# Disable file watcher to avoid inotify issues in some environments
+fileWatcherType = "none"
+
+# Reduce memory usage
+maxUploadSize = 200
+
+[theme]
+# Optional: Set a consistent theme
+primaryColor = "#1f77b4"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f0f2f6"
+textColor = "#262730"
+
+[browser]
+# Don't automatically open browser (useful for deployment)
+gatherUsageStats = false

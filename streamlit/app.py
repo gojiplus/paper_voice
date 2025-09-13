@@ -113,42 +113,25 @@ def extract_pdf_content(pdf_path: str, use_vision: bool = False, api_key: str = 
 
 
 def enhance_content_with_llm(content: str, api_key: str, input_type: str = "text") -> str:
-    """Enhance content using LLM for better narration quality."""
+    """Enhance content using unified backend processor."""
     try:
-        from paper_voice.pdf_content_enhancer import enhance_pdf_content_with_llm
+        from paper_voice.content_processor import process_content_unified
         
-        if input_type.lower() == "pdf":
-            # For PDF content, use the specialized enhancer
-            return enhance_pdf_content_with_llm(content, api_key)
-        else:
-            # For other content types, use a general enhancement
-            from openai import OpenAI
-            client = OpenAI(api_key=api_key)
-            
-            prompt = f"""You are preparing academic text for audio narration. Make the following improvements:
-
-1. **Fix mathematical expressions**: Convert any garbled math symbols to clear, speakable language
-2. **Improve clarity**: Rewrite complex sentences to be more natural when spoken
-3. **Add context**: Where helpful, add brief explanations of technical terms
-4. **Structure for audio**: Organize the content with clear transitions between sections
-
-Keep the academic content accurate while making it audio-friendly.
-
-Text to enhance:
-{content}
-
-Enhanced text for narration:"""
-            
-            response = client.chat.completions.create(
-                model="gpt-4",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.1
-            )
-            
-            return response.choices[0].message.content.strip()
+        if not api_key or api_key.strip() == "":
+            return content
+        
+        # Use unified processor - concentrates all logic in backend
+        processed_doc = process_content_unified(
+            content=content,
+            input_type=input_type.lower(),
+            api_key=api_key,
+            use_llm_enhancement=True
+        )
+        
+        return processed_doc.enhanced_text
     
     except Exception as e:
-        print(f"LLM enhancement failed: {e}")
+        print(f"Content processing failed: {e}")
         return content
 
 
@@ -296,28 +279,11 @@ def create_comprehensive_narration_script(content: str, input_type: str, api_key
     enhanced_content = enhance_content_with_llm(content, api_key, input_type)
     progress_bar.progress(30)
     
-    # Process mathematical content
-    update_progress("Processing mathematical expressions...")
-    processed_content = process_content_with_llm(enhanced_content, api_key, update_progress)
-    progress_bar.progress(70)
-    
-    # Process figures and tables
-    update_progress("Processing figures and tables...")
-    figure_explanations, table_explanations = process_figures_and_tables(content, api_key)
+    # The enhanced_content already has all math, figures, tables processed
+    # by the unified backend processor, so just use it directly
+    update_progress("Finalizing processed content...")
+    script_parts.append(enhanced_content)
     progress_bar.progress(90)
-    
-    # Add processed content
-    script_parts.append(processed_content)
-    
-    # Add figure explanations
-    if figure_explanations:
-        script_parts.append("The document includes the following figures:")
-        script_parts.extend(figure_explanations)
-    
-    # Add table explanations
-    if table_explanations:
-        script_parts.append("The document includes the following tables:")
-        script_parts.extend(table_explanations)
     
     # Process uploaded images
     if uploaded_images:

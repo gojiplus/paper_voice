@@ -151,7 +151,7 @@ def extract_figures_from_source(source_dir: str) -> Dict[str, bytes]:
 
 
 def process_latex_inputs(latex_content: str, source_dir: str) -> str:
-    """Process \input and \include commands to merge LaTeX files."""
+    r"""Process \input and \include commands to merge LaTeX files."""
     
     def replace_input(match):
         filename = match.group(1)
