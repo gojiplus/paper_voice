@@ -150,9 +150,7 @@ def extract_pdf_content(pdf_path: str, use_vision: bool = False, api_key: str = 
 
 
 def enhance_content_with_llm_fast(content: str, api_key: str, input_type: str = "text", show_debug: bool = False) -> str:
-    """Fast batch enhancement of content using streamlined processing."""
-    import re
-    from openai import OpenAI
+    """Simple LLM enhancement using single comprehensive prompt."""
     
     try:
         if not api_key or api_key.strip() == "":
@@ -161,94 +159,19 @@ def enhance_content_with_llm_fast(content: str, api_key: str, input_type: str = 
             return content
         
         if show_debug:
-            st.info(f"🔧 Fast processing {len(content)} characters with batch LLM enhancement")
+            st.info(f"🔧 Processing {len(content)} characters with simple LLM enhancement")
         
-        client = OpenAI(api_key=api_key)
-        enhanced_content = content
+        # Use the simplified enhancer from the package
+        from paper_voice.simple_llm_enhancer import enhance_document_simple
         
-        # Find all math expressions first (batch them)
-        inline_math = re.findall(r'\\\((.*?)\\\)', content, re.DOTALL)
-        display_math = re.findall(r'\\\[(.*?)\\\]', content, re.DOTALL)
+        def progress_callback(message):
+            if show_debug:
+                st.info(f"📝 {message}")
         
-        all_math = [(expr, 'inline') for expr in inline_math] + [(expr, 'display') for expr in display_math]
+        enhanced_content = enhance_document_simple(content, api_key, progress_callback)
         
         if show_debug:
-            st.info(f"📊 Found {len(inline_math)} inline + {len(display_math)} display = {len(all_math)} total math expressions")
-        
-        if all_math:
-            # Create a single batch prompt for all math expressions
-            batch_prompt = """You are converting mathematical expressions into clear natural language for audio narration.
-
-CRITICAL REQUIREMENTS:
-- Use precise language: "capital X" vs "lowercase x"  
-- Explain meaning, not just symbols
-- Use "equals" not "=", "times" not "×"
-- For Greek letters: "theta" not "θ", "epsilon" not "ε"
-- Make it flow naturally when spoken
-
-Convert each expression below into natural language. Return ONLY the explanations, one per line, in the same order:
-
-"""
-            
-            for i, (expr, math_type) in enumerate(all_math):
-                batch_prompt += f"{i+1}. {expr.strip()}\n"
-            
-            if show_debug:
-                st.info(f"🤖 Sending batch request to GPT-4 for {len(all_math)} expressions...")
-            
-            try:
-                # Single API call for all math
-                response = client.chat.completions.create(
-                    model="gpt-4",
-                    messages=[
-                        {"role": "system", "content": "You are an expert at converting mathematical expressions into clear, natural language for audio narration."},
-                        {"role": "user", "content": batch_prompt}
-                    ],
-                    temperature=0.1,
-                    max_tokens=2000,
-                    timeout=30  # 30 second timeout
-                )
-                
-                explanations = response.choices[0].message.content.strip().split('\n')
-                explanations = [exp.strip() for exp in explanations if exp.strip()]
-                
-                if show_debug:
-                    st.info(f"✅ Got {len(explanations)} explanations from LLM")
-                
-                # Replace math expressions with explanations
-                if len(explanations) >= len(all_math):
-                    # Replace display math first (to avoid conflicts)
-                    for i, (expr, math_type) in enumerate(all_math):
-                        if math_type == 'display':
-                            pattern = r'\\\[' + re.escape(expr) + r'\\\]'
-                            if i < len(explanations):
-                                enhanced_content = re.sub(pattern, f" {explanations[i]} ", enhanced_content, count=1)
-                    
-                    # Then replace inline math
-                    for i, (expr, math_type) in enumerate(all_math):
-                        if math_type == 'inline':
-                            pattern = r'\\\(' + re.escape(expr) + r'\\\)'
-                            if i < len(explanations):
-                                enhanced_content = re.sub(pattern, f" {explanations[i]} ", enhanced_content, count=1)
-                else:
-                    if show_debug:
-                        st.warning(f"⚠️ Got {len(explanations)} explanations but expected {len(all_math)}")
-            
-            except Exception as e:
-                if show_debug:
-                    st.error(f"❌ Batch LLM processing failed: {str(e)}")
-                # Fall back to original content
-                pass
-        
-        # Clean up LaTeX artifacts
-        enhanced_content = re.sub(r'\\section\*?\{([^}]*)\}', r'Section: \1', enhanced_content)
-        enhanced_content = re.sub(r'\\subsection\*?\{([^}]*)\}', r'Subsection: \1', enhanced_content)
-        enhanced_content = re.sub(r'\\begin\{threeparttable\}.*?\\end\{threeparttable\}', 
-                                 '[Table content with statistical results]', enhanced_content, flags=re.DOTALL)
-        enhanced_content = re.sub(r'\\begin\{tabular\}.*?\\end\{tabular\}', 
-                                 '[Statistical table with numerical results]', enhanced_content, flags=re.DOTALL)
-        enhanced_content = re.sub(r'\\[a-zA-Z]+\{[^}]*\}', '', enhanced_content)  # Remove other LaTeX commands
-        enhanced_content = re.sub(r'[{}\\]', '', enhanced_content)  # Remove stray LaTeX characters
+            st.success("✅ Simple LLM enhancement completed!")
         enhanced_content = re.sub(r'\s+', ' ', enhanced_content)  # Normalize whitespace
         
         if show_debug:
