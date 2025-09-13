@@ -119,49 +119,53 @@ def main():
     # Debug mode
     show_debug = st.sidebar.checkbox("🔍 Debug Mode", value=False)
     
+    # Process input first (before columns)
+    content = ""
+    input_type = "text"
+    
+    # File uploader
+    uploaded_file = st.file_uploader(
+        "Upload PDF or text file",
+        type=['pdf', 'txt', 'tex'],
+        help="Upload a PDF, text file, or LaTeX file"
+    )
+    
+    # Text input area
+    text_input = st.text_area(
+        "Or paste text/LaTeX directly:",
+        height=200,
+        placeholder="Paste your LaTeX or text content here..."
+    )
+    
+    if uploaded_file is not None:
+        if uploaded_file.type == "application/pdf":
+            # Handle PDF
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+                tmp_file.write(uploaded_file.read())
+                tmp_file.flush()
+                content = extract_pdf_content(tmp_file.name)
+                input_type = "PDF"
+            os.unlink(tmp_file.name)
+        else:
+            # Handle text/LaTeX files
+            content = uploaded_file.read().decode('utf-8')
+            input_type = "LaTeX" if uploaded_file.name.endswith('.tex') else "text"
+    elif text_input.strip():
+        content = text_input
+        input_type = "LaTeX" if "\\section" in content or "\\(" in content else "text"
+    
+    if content:
+        st.success(f"✅ Loaded {len(content)} characters of {input_type} content")
+    
     # Main content area
     col1, col2 = st.columns([1, 1])
     
     with col1:
-        st.header("📄 Input")
-        
-        # File uploader
-        uploaded_file = st.file_uploader(
-            "Upload PDF or text file",
-            type=['pdf', 'txt', 'tex'],
-            help="Upload a PDF, text file, or LaTeX file"
-        )
-        
-        # Text input area
-        text_input = st.text_area(
-            "Or paste text/LaTeX directly:",
-            height=300,
-            placeholder="Paste your LaTeX or text content here..."
-        )
-        
-        # Process input
-        content = ""
-        input_type = "text"
-        
-        if uploaded_file is not None:
-            if uploaded_file.type == "application/pdf":
-                # Handle PDF
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
-                    tmp_file.write(uploaded_file.read())
-                    tmp_file.flush()
-                    content = extract_pdf_content(tmp_file.name)
-                    input_type = "PDF"
-                os.unlink(tmp_file.name)
-            else:
-                # Handle text/LaTeX files
-                content = uploaded_file.read().decode('utf-8')
-                input_type = "LaTeX" if uploaded_file.name.endswith('.tex') else "text"
-        elif text_input.strip():
-            content = text_input
-            input_type = "LaTeX" if "\\section" in content or "\\(" in content else "text"
-        
+        st.header("📄 Input Status")
         if content:
-            st.success(f"✅ Loaded {len(content)} characters of {input_type} content")
+            st.info(f"Content loaded: {len(content)} characters of {input_type}")
+        else:
+            st.warning("No content loaded yet")
     
     with col2:
         st.header("🎯 Output")
