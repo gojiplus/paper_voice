@@ -172,6 +172,8 @@ def enhance_content_with_llm_fast(content: str, api_key: str, input_type: str = 
         
         if show_debug:
             st.success("✅ Simple LLM enhancement completed!")
+        
+        import re
         enhanced_content = re.sub(r'\s+', ' ', enhanced_content)  # Normalize whitespace
         
         if show_debug:
