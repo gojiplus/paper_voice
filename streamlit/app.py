@@ -200,6 +200,15 @@ def main():
             # Update session state if user edits
             st.session_state['enhanced_script'] = enhanced_script
             
+            # Download button for enhanced script
+            st.download_button(
+                label="📥 Download Enhanced Script",
+                data=enhanced_script,
+                file_name="enhanced_script.txt",
+                mime="text/plain",
+                help="Download the enhanced script as a text file"
+            )
+            
             # Step 2: Convert to Audio
             if st.button("🔊 Step 2: Convert to Audio", disabled=not api_key):
                 if not enhanced_script.strip():
