@@ -52,13 +52,55 @@ CRITICAL REQUIREMENTS:
 4. Keep ALL content - don't summarize or skip anything
 5. Make everything flow naturally for audio narration
 
-MATHEMATICAL CONVERSION:
-- Convert $x^2$ to "x squared"  
-- Convert \\(\\alpha\\) to "alpha"
-- Convert \\[R^2 = 1 - \\frac{{SSE}}{{SST}}\\] to "R-squared equals one minus the ratio of sum of squared errors to total sum of squares"
-- Convert \\(p_C\\) to "p subscript C"
-- Convert \\(\\hat{{\\theta}}\\) to "theta hat"
-- Be precise: "capital X" vs "lowercase x", "theta" not "θ"
+MATHEMATICAL CONVERSION - Speak like a professor explaining at the board:
+
+SUBSCRIPTS AND NOTATION (explain meaning, not just symbols):
+- \\(p_C\\) → "p underscore capital C, the proportion of compliers" or "the complier share"
+- \\(F_{{1C}}\\) → "F underscore one capital C, the outcome distribution for treated compliers" 
+- \\(F_{{0C}}\\) → "F underscore zero capital C, the outcome distribution for control compliers"
+- \\(F_{{Y|Z=z}}\\) → "the distribution of Y when the instrument takes value z"
+- \\(\\hat{{\\theta}}\\) → "theta-hat, our estimate of theta" 
+- \\(X_i\\) → "X underscore i" or "X for individual i"
+- \\(\\beta_1\\) → "beta underscore one, the treatment effect coefficient"
+- \\(e(X)\\) → "e of X, the probability that the instrument equals one given covariates X"
+- \\(p_z(X)\\) → "p underscore z of X, the expected treatment status when the instrument takes value z, given covariates X"
+
+CAPITALIZATION AND VARIABLES (TTS cannot distinguish Z vs z):
+- \\(Z = z\\) → "when the instrument capital-Z takes value lowercase-z" or "when the instrument takes value z"
+- \\(Z \\in \\{{0,1\\}}\\) → "the instrument takes values zero or one"
+- Random variables: Use descriptive names ("the instrument" not just "Z")
+- Specific values: "when Z equals zero" or "under treatment assignment"
+
+EQUATIONS AND RELATIONSHIPS (break into natural speech):
+- \\(Y = \\beta X + \\epsilon\\) → "Y equals beta times X plus the error term epsilon"
+- \\(\\sum_{{i=1}}^n X_i\\) → "the sum of X sub-i from i equals 1 to n"
+- \\(E[Y|X]\\) → "the expected value of Y given X"
+- \\(\\frac{{a}}{{b}}\\) → "the ratio of a to b" or "a over b"
+
+PROFESSOR-STYLE NARRATION:
+- First mention: "Let p_C denote the proportion of compliers"
+- Subsequent: "the complier share" or just "p_C"
+- Complex expressions: Break into meaningful parts
+- Estimates: "our estimate of" or "the estimated value"
+- Conditional notation: "when", "given that", "conditional on"
+
+CRITICAL EXAMPLES - Transform robotic to natural:
+
+WRONG (robotic): "F subscript 1C and the estimated F subscript 0C"
+RIGHT (natural): "the outcome distributions for treated and control compliers"
+
+WRONG: "p subscript C times the difference between F subscript 1C of y and F subscript 0C of y"  
+RIGHT: "p underscore capital C, the complier share, times the difference in outcome distributions between treated and control compliers"
+
+WRONG: "the difference between F subscript Y given Z equals 1 and F subscript Y given Z equals 0"
+RIGHT: "the difference between outcome distributions under treatment assignment versus control assignment"
+
+WRONG: "Define e of X as the probability that Z equals one given X, p subscript z of X as the expected value of D given Z equals z and X"
+RIGHT: "Define e of X as the probability that the instrument equals one, conditional on covariates X. Define p underscore z of X as the expected treatment status when the instrument takes value z, conditional on covariates X"
+
+CONTEXT-AWARE CONVERSION:
+First mention: "Define p_C as the proportion of compliers in the population"
+Later references: "the complier share" or "this proportion"
 
 TABLE PROCESSING:
 - Replace LaTeX table environments (\\begin{{tabular}}, \\begin{{threeparttable}}) with clear spoken descriptions
@@ -126,9 +168,18 @@ Convert this entire document into clear, natural audio narration text:"""
         if result == content:
             raise Exception("LLM returned identical content - enhancement failed")
         
-        # Check if math was actually converted
-        if ("\\(" in content or "\\[" in content) and ("\\(" in result or "\\[" in result):
-            raise Exception("Math expressions not converted - LaTeX still present in result")
+        # Check if critical math expressions were converted
+        # Count original vs remaining math expressions
+        original_inline = content.count("\\(")
+        original_display = content.count("\\[")
+        remaining_inline = result.count("\\(")
+        remaining_display = result.count("\\[")
+        
+        # If most math wasn't converted, that's a failure
+        if original_inline > 0 and remaining_inline >= original_inline * 0.8:
+            raise Exception(f"Inline math not converted - {remaining_inline}/{original_inline} expressions remain")
+        if original_display > 0 and remaining_display >= original_display * 0.8:
+            raise Exception(f"Display math not converted - {remaining_display}/{original_display} expressions remain")
             
         return result
         
