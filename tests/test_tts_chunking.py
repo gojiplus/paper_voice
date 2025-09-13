@@ -119,8 +119,9 @@ class TestChunkedSynthesis:
         mock_segment = Mock()
         mock_audio.from_mp3.return_value = mock_segment
         mock_combined = Mock()
+        # Support for the += operator
+        mock_combined.__iadd__ = Mock(return_value=mock_combined)
         mock_audio.empty.return_value = mock_combined
-        mock_combined.__iadd__.return_value = mock_combined
         mock_audio.silent.return_value = Mock()
         
         result = synthesize_speech_chunked(

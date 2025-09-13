@@ -63,45 +63,45 @@ def _split_text_for_tts(text: str, max_length: int = 4000) -> list[str]:
     Splits text at sentence boundaries to avoid cutting off in the middle of sentences.
     OpenAI TTS has a 4096 character limit, so we use 4000 to be safe.
     """
+    if not text:
+        return [""]
+    
     if len(text) <= max_length:
         return [text]
     
     chunks = []
     current_chunk = ""
     
-    # Split by sentences first
+    # Split by sentences first - use '. ' to preserve sentence structure
     sentences = text.split('. ')
     
     for i, sentence in enumerate(sentences):
-        # Add back the period except for the last sentence
+        # Add back the period and space except for the last sentence
         if i < len(sentences) - 1:
-            sentence += '. '
+            full_sentence = sentence + '. '
+        else:
+            full_sentence = sentence
         
         # Check if adding this sentence would exceed the limit
-        if len(current_chunk + sentence) > max_length:
+        if len(current_chunk + full_sentence) > max_length:
             if current_chunk:  # If we have content, save it
-                chunks.append(current_chunk.strip())
-                current_chunk = sentence
+                chunks.append(current_chunk)
+                current_chunk = full_sentence
             else:  # Single sentence is too long, split by words
-                words = sentence.split()
-                temp_chunk = ""
-                for word in words:
-                    if len(temp_chunk + " " + word) > max_length:
-                        if temp_chunk:
-                            chunks.append(temp_chunk.strip())
-                            temp_chunk = word
-                        else:
-                            # Single word is too long, just add it
-                            chunks.append(word)
-                    else:
-                        temp_chunk += " " + word if temp_chunk else word
-                if temp_chunk:
-                    current_chunk = temp_chunk
+                if len(full_sentence) > max_length:
+                    # Split very long content character by character if needed
+                    while len(full_sentence) > max_length:
+                        chunks.append(full_sentence[:max_length])
+                        full_sentence = full_sentence[max_length:]
+                    if full_sentence:
+                        current_chunk = full_sentence
+                else:
+                    current_chunk = full_sentence
         else:
-            current_chunk += sentence
+            current_chunk += full_sentence
     
     if current_chunk:
-        chunks.append(current_chunk.strip())
+        chunks.append(current_chunk)
     
     return chunks
 

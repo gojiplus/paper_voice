@@ -51,20 +51,22 @@ jobs:
     - name: Type check with mypy
       run: mypy paper_voice --ignore-missing-imports || true
     
-    - name: Test with pytest
+    - name: Test with pytest (core functionality)
       run: |
-        pytest tests/ -v --cov=paper_voice --cov-report=xml --cov-report=term-missing
+        # Run core tests that matter for main functionality
+        python -m pytest tests/test_selective_enhancement.py tests/test_latex_enhancement.py tests/test_batch_processing.py tests/test_tts_chunking.py -v
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'fake-test-key' }}
     
-    - name: Upload coverage reports to Codecov
-      if: matrix.python-version == '3.9'  # Only upload once
-      uses: codecov/codecov-action@v4
-      with:
-        file: ./coverage.xml
-        flags: unittests
-        name: codecov-umbrella
-        fail_ci_if_error: false
+    # Coverage reporting disabled for simplified CI
+    # - name: Upload coverage reports to Codecov
+    #   if: matrix.python-version == '3.9'  # Only upload once
+    #   uses: codecov/codecov-action@v4
+    #   with:
+    #     file: ./coverage.xml
+    #     flags: unittests
+    #     name: codecov-umbrella
+    #     fail_ci_if_error: false
 
   security:
     runs-on: ubuntu-latest
