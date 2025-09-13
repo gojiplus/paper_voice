@@ -55,8 +55,15 @@ def create_audio_from_text(text: str, output_path: str, voice: str = "alloy",
             st.error("No API key provided for TTS")
             return False
             
-        success = tts.create_audio_openai(text, output_path, voice, api_key)
-        return success
+        # Use the correct function name and parameters
+        result_path = tts.synthesize_speech(
+            text=text,
+            output_path=output_path, 
+            use_openai=True,
+            api_key=api_key,
+            openai_voice=voice
+        )
+        return result_path == output_path
     except Exception as e:
         st.error(f"TTS failed: {str(e)}")
         return False
