@@ -126,6 +126,78 @@ Provide a clear, comprehensive summary for audio:
 """
 
 
+def get_math_environment_explanation_prompt(math_content: str, env_type: str, context: str = "") -> str:
+    """Create a specialized prompt for explaining LaTeX math environments."""
+    
+    if env_type in ['equation', 'equation*']:
+        intro = "You are explaining a mathematical equation from a LaTeX document."
+        guidance = """SPECIFIC GUIDANCE FOR SINGLE EQUATIONS:
+1. Explain what the equation establishes or defines
+2. If it's a definition, start with "This equation defines..."
+3. If it's a relationship, start with "This equation shows that..."
+4. Explain each term and its mathematical meaning
+5. Describe the overall significance in the context"""
+        
+    elif env_type in ['align', 'align*', 'gather', 'gather*', 'eqnarray', 'eqnarray*']:
+        intro = "You are explaining a system of aligned mathematical equations."
+        guidance = """SPECIFIC GUIDANCE FOR MULTI-LINE EQUATIONS:
+1. Start with "This system of equations shows..." or "These aligned equations..."
+2. Explain the relationship between the different lines
+3. If it's a derivation, walk through each step: "Starting with..., then..., finally..."
+4. If it's a system, explain how the equations work together
+5. Highlight key transitions and why each step follows"""
+        
+    elif env_type in ['multline', 'multline*']:
+        intro = "You are explaining a multi-line mathematical equation that represents a single mathematical statement."
+        guidance = """SPECIFIC GUIDANCE FOR MULTI-LINE SINGLE EQUATIONS:
+1. Start with "This equation, which spans multiple lines, shows..."
+2. Explain that it's one mathematical statement broken across lines
+3. Walk through each line and how it connects to the next
+4. Emphasize the logical flow from start to finish
+5. Conclude with the overall meaning"""
+        
+    else:
+        intro = "You are explaining a mathematical expression from a LaTeX document."
+        guidance = """GENERAL GUIDANCE:
+1. Explain the mathematical concept clearly
+2. Use multiple sentences when needed
+3. Make relationships between terms clear
+4. Provide context about the mathematical meaning"""
+    
+    return f"""{intro} Convert it into crystal-clear natural language for audio narration.
+
+MATHEMATICAL CONTENT:
+{math_content}
+
+ENVIRONMENT TYPE: {env_type}
+
+DOCUMENT CONTEXT:
+{context}
+
+{guidance}
+
+CRITICAL REQUIREMENTS (same as for single expressions):
+1. Use PRECISE language that distinguishes between variables (e.g., "capital X" vs "lowercase x")
+2. Explain the MEANING, not just read symbols
+3. Use multiple clear sentences when needed
+4. Provide context about what mathematical concepts mean
+5. Make it sound natural when spoken aloud
+
+KEY PRINCIPLES:
+- Always distinguish "capital" vs "lowercase" for variables
+- Explain subscripts clearly: "X subscript i" not "X sub i"  
+- For Greek letters, use full names: "theta" not "θ", "epsilon" not "ε"
+- Explain the mathematical meaning, not just the symbols
+- Use "equals" instead of "="
+- Use "times" instead of "×" or "·"
+- For fractions, say "over" or explain as division
+- Make it flow naturally when read aloud
+
+Now explain this mathematical content clearly and naturally:
+
+"""
+
+
 def get_theorem_explanation_prompt(theorem_content: str, context: str = "") -> str:
     """Create a prompt for explaining theorems and propositions."""
     
@@ -417,3 +489,41 @@ def explain_table_with_llm_sync(caption: str, table_content: str, api_key: str) 
     
     except Exception as e:
         return f"Table: {caption}. (Summary failed: {str(e)})"
+
+
+def explain_math_environment_with_llm_sync(math_content: str, env_type: str, api_key: str, context: str = "") -> MathExplanation:
+    """Synchronous version of LaTeX math environment explanation."""
+    from openai import OpenAI
+    
+    client = OpenAI(api_key=api_key)
+    
+    prompt = get_math_environment_explanation_prompt(math_content, env_type, context)
+    
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are an expert mathematical exposition writer who converts LaTeX math environments into clear, natural language explanations for audio narration."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.1,
+            max_tokens=1000  # Slightly higher for complex multi-line environments
+        )
+        
+        explanation = response.choices[0].message.content.strip()
+        variables_explained = _extract_variable_explanations(explanation)
+        
+        return MathExplanation(
+            original_latex=math_content,
+            natural_explanation=explanation,
+            context_type=env_type,
+            variables_explained=variables_explained
+        )
+    
+    except Exception as e:
+        return MathExplanation(
+            original_latex=math_content,
+            natural_explanation=f"Mathematical environment ({env_type}): {math_content} (explanation failed: {str(e)})",
+            context_type=env_type,
+            variables_explained={}
+        )

@@ -8,7 +8,7 @@ while only improving specific content types (math, figures, tables) via LLM.
 import re
 from typing import List, Tuple, Optional
 from openai import OpenAI
-from .llm_math_explainer import explain_math_with_llm_sync
+from .llm_math_explainer import explain_math_with_llm_sync, explain_math_environment_with_llm_sync
 from .figure_table_summarizer import summarize_figure_with_llm, summarize_table_with_llm
 
 
@@ -65,8 +65,70 @@ def _enhance_math_expressions(content: str, api_key: str, progress_callback=None
     """Enhance mathematical expressions while preserving all other text."""
     
     processed_content = content
+    total_math_count = 0
     
-    # Define all math patterns (display and inline)
+    # 1. First, process LaTeX math environments (most complex)
+    latex_env_patterns = [
+        # Single equation environments
+        (r'\\begin\{(equation\*?)\}(.*?)\\end\{\1\}', 'latex_env'),
+        
+        # Multi-line alignment environments
+        (r'\\begin\{(align\*?)\}(.*?)\\end\{\1\}', 'latex_env'),
+        (r'\\begin\{(gather\*?)\}(.*?)\\end\{\1\}', 'latex_env'),
+        (r'\\begin\{(eqnarray\*?)\}(.*?)\\end\{\1\}', 'latex_env'),
+        
+        # Multi-line single equation environments
+        (r'\\begin\{(multline\*?)\}(.*?)\\end\{\1\}', 'latex_env'),
+        
+        # AMS Math environments
+        (r'\\begin\{(split)\}(.*?)\\end\{\1\}', 'latex_env'),
+        (r'\\begin\{(aligned)\}(.*?)\\end\{\1\}', 'latex_env'),
+        (r'\\begin\{(gathered)\}(.*?)\\end\{\1\}', 'latex_env'),
+    ]
+    
+    # Process LaTeX environments first (they contain the most complex math)
+    for pattern, env_type in latex_env_patterns:
+        matches = list(re.finditer(pattern, processed_content, re.DOTALL | re.IGNORECASE))
+        
+        if matches:
+            total_math_count += len(matches)
+            if progress_callback:
+                progress_callback(f"Enhancing {len(matches)} LaTeX {env_type} environments...")
+            
+            # Process in reverse order to maintain positions
+            for i, match in enumerate(reversed(matches)):
+                env_name = match.group(1)  # equation, align, etc.
+                math_content = match.group(2).strip()
+                
+                # Skip empty environments
+                if not math_content:
+                    continue
+                
+                # Get context around the environment
+                context_start = max(0, match.start() - 800)
+                context_end = min(len(processed_content), match.end() + 800)
+                context = processed_content[context_start:context_end]
+                
+                # Get LLM explanation using specialized environment handler
+                try:
+                    explanation = explain_math_environment_with_llm_sync(
+                        math_content, env_name, api_key, context
+                    )
+                    replacement = f" {explanation.natural_explanation} "
+                    processed_content = (processed_content[:match.start()] + 
+                                       replacement + 
+                                       processed_content[match.end():])
+                    
+                    if progress_callback:
+                        progress_callback(f"Enhanced {env_name} environment {len(matches) - i}/{len(matches)}")
+                        
+                except Exception as e:
+                    if progress_callback:
+                        progress_callback(f"Warning: Failed to enhance {env_name} environment: {str(e)}")
+                    # Keep original if enhancement fails
+                    continue
+    
+    # 2. Now process traditional math delimiters (for any remaining math)
     math_patterns = [
         # Display math patterns
         (r'\$\$(.*?)\$\$', 'display', '$$...$$'),           # $$...$$
@@ -77,9 +139,7 @@ def _enhance_math_expressions(content: str, api_key: str, progress_callback=None
         (r'\\\((.*?)\\\)', 'inline', r'\(...\)'),           # \(...\)
     ]
     
-    total_math_count = 0
-    
-    # Process each math pattern
+    # Process each remaining math pattern
     for pattern, math_type, pattern_name in math_patterns:
         matches = list(re.finditer(pattern, processed_content, re.DOTALL))
         
@@ -116,7 +176,7 @@ def _enhance_math_expressions(content: str, api_key: str, progress_callback=None
                     continue
     
     if total_math_count > 0 and progress_callback:
-        progress_callback(f"Enhanced {total_math_count} mathematical expressions total")
+        progress_callback(f"Enhanced {total_math_count} mathematical expressions total (including LaTeX environments)")
     
     return processed_content
 

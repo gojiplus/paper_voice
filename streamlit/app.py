@@ -523,12 +523,21 @@ def main():
             100, 300, 180, 10
         )
     
-    # Generate button
-    generate_button = st.sidebar.button(
-        "🎯 Generate Advanced Narration",
+    # Two-step process buttons
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("**Two-Step Process:**")
+    
+    generate_script_button = st.sidebar.button(
+        "📝 Step 1: Generate Enhanced Script",
         type="primary",
         disabled=not api_key,
         help="Requires OpenAI API key"
+    )
+    
+    generate_audio_button = st.sidebar.button(
+        "🎵 Step 2: Convert Script to Audio", 
+        disabled=True,  # Will be enabled when script is ready
+        help="Generate audio from the enhanced script"
     )
     
     # Main interface
@@ -553,19 +562,95 @@ def main():
         """)
         return
     
-    # Main content area
-    col1, col2 = st.columns([1, 1])
+    # Initialize session state for the enhanced script
+    if 'enhanced_script' not in st.session_state:
+        st.session_state.enhanced_script = ""
     
-    with col1:
-        st.subheader("📝 Enhanced Script")
-        script_container = st.empty()
+    # Main content area - single column layout for better editing experience
+    st.subheader("📝 Enhanced Script")
     
-    with col2:
-        st.subheader("🎵 Audio Output")
-        audio_container = st.empty()
+    if st.session_state.enhanced_script:
+        # Show editable script in a large text area
+        edited_script = st.text_area(
+            "Review and edit the enhanced script:",
+            value=st.session_state.enhanced_script,
+            height=400,
+            help="Edit the script as needed before converting to audio. The script has been enhanced with natural language explanations of mathematical expressions.",
+            key="script_editor"
+        )
+        
+        # Update session state if user edits
+        if edited_script != st.session_state.enhanced_script:
+            st.session_state.enhanced_script = edited_script
+        
+        # Enable audio generation button when script is available
+        st.sidebar.markdown("---")
+        audio_ready = st.sidebar.button(
+            "🎵 Step 2: Convert Script to Audio",
+            type="primary",
+            help="Generate audio from the enhanced script"
+        )
+        
+        if audio_ready:
+            st.subheader("🎵 Audio Output")
+            # STEP 2: Generate Audio from Script
+            try:
+                current_script = st.session_state.enhanced_script
+                
+                with st.spinner("🎵 Generating audio from enhanced script..."):
+                    audio_dir = tempfile.mkdtemp(prefix="paper_voice_advanced_")
+                    audio_ext = ".mp3" if use_openai_tts else ".wav"
+                    audio_path = os.path.join(audio_dir, f"enhanced_narration{audio_ext}")
+                    
+                    if use_openai_tts:
+                        output_file = tts.synthesize_speech_chunked(
+                            current_script,
+                            audio_path,
+                            use_openai=True,
+                            api_key=api_key,
+                            openai_voice=openai_voice
+                        )
+                    else:
+                        output_file = tts.synthesize_speech_chunked(
+                            current_script,
+                            audio_path,
+                            voice=offline_voice,
+                            rate=speech_rate,
+                            use_openai=False
+                        )
+                    
+                    # Display audio
+                    st.audio(output_file)
+                    
+                    # Download button
+                    with open(output_file, "rb") as f:
+                        audio_bytes = f.read()
+                    
+                    st.download_button(
+                        "⬇️ Download Enhanced Audio",
+                        data=audio_bytes,
+                        file_name=f"paper_voice_enhanced{audio_ext}",
+                        mime=f"audio/{'mpeg' if audio_ext == '.mp3' else 'wav'}"
+                    )
+                    
+                    st.success("✅ Enhanced narration generated successfully!")
+            
+            except Exception as e:
+                st.error(f"❌ Audio generation failed: {str(e)}")
+                import traceback
+                with st.expander("🐛 Audio Debug Information"):
+                    st.code(traceback.format_exc())
+    else:
+        st.info("👆 Use 'Step 1: Generate Enhanced Script' to create an enhanced script from your content.")
     
-    # Process when generate button clicked
-    if generate_button:
+    # Clear button to reset script
+    if st.session_state.enhanced_script:
+        if st.button("🗑️ Clear Script", help="Clear the current script to start over"):
+            st.session_state.enhanced_script = ""
+            st.rerun()
+    
+    # STEP 1: Generate Enhanced Script
+    if generate_script_button:
         if not api_key:
             st.error("🔑 OpenAI API key is required for advanced processing.")
             return
@@ -650,65 +735,17 @@ def main():
                     preview_text = content[:1000] + "..." if len(content) > 1000 else content
                     st.text_area("Raw content preview:", preview_text, height=200)
             
-            # Generate enhanced script
+            # Generate enhanced script and store in session state
             with st.spinner("🧠 Creating enhanced narration with LLM explanations..."):
                 enhanced_script = create_comprehensive_narration_script(
                     content, input_type, api_key, uploaded_images, show_debug_info
                 )
             
-            # Display editable script
-            with col1:
-                edited_script = st.text_area(
-                    "✏️ Review and edit the enhanced script:",
-                    value=enhanced_script,
-                    height=400,
-                    help="The script has been enhanced with natural language explanations of mathematical expressions"
-                )
+            # Store script in session state
+            st.session_state.enhanced_script = enhanced_script
             
-            # Generate audio
-            if edited_script.strip():
-                with st.spinner("🎵 Generating audio..."):
-                    audio_dir = tempfile.mkdtemp(prefix="paper_voice_advanced_")
-                    audio_ext = ".mp3" if use_openai_tts else ".wav"
-                    audio_path = os.path.join(audio_dir, f"enhanced_narration{audio_ext}")
-                    
-                    try:
-                        if use_openai_tts:
-                            output_file = tts.synthesize_speech_chunked(
-                                edited_script,
-                                audio_path,
-                                use_openai=True,
-                                api_key=api_key,
-                                openai_voice=openai_voice
-                            )
-                        else:
-                            output_file = tts.synthesize_speech_chunked(
-                                edited_script,
-                                audio_path,
-                                voice=offline_voice,
-                                rate=speech_rate,
-                                use_openai=False
-                            )
-                        
-                        # Display audio
-                        with col2:
-                            st.audio(output_file)
-                            
-                            # Download button
-                            with open(output_file, "rb") as f:
-                                audio_bytes = f.read()
-                            
-                            st.download_button(
-                                "⬇️ Download Enhanced Audio",
-                                data=audio_bytes,
-                                file_name=f"paper_voice_enhanced{audio_ext}",
-                                mime=f"audio/{'mpeg' if audio_ext == '.mp3' else 'wav'}"
-                            )
-                            
-                            st.success("✅ Enhanced narration generated successfully!")
-                    
-                    except Exception as e:
-                        st.error(f"❌ Audio generation failed: {str(e)}")
+            st.success("✅ Enhanced script generated! You can now review and edit it below.")
+            st.rerun()  # Refresh to show the script editor
         
         except Exception as e:
             st.error(f"❌ Processing failed: {str(e)}")
