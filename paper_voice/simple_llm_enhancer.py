@@ -90,10 +90,10 @@ Convert this entire document into clear, natural audio narration text:"""
         if progress_callback:
             progress_callback(f"Sending {len(content)} chars to LLM (may take 30-60 seconds)...")
         
-        # Calculate appropriate max_tokens based on input size
-        # Rule of thumb: output should be similar size or slightly larger
-        estimated_tokens = len(content) // 3  # Rough estimate: 3 chars per token
-        max_output_tokens = max(4000, min(8000, estimated_tokens * 2))  # 2x input, capped at 8k
+        # Calculate appropriate max_tokens based on OpenAI limits
+        estimated_input_tokens = len(content) // 3  # Rough estimate: 3 chars per token
+        # Reserve reasonable space for output (1.5x input, but cap at 16k which is GPT-4o max output)
+        max_output_tokens = min(16384, max(4000, int(estimated_input_tokens * 1.5)))
         
         if progress_callback:
             progress_callback(f"Using max_tokens={max_output_tokens} for this request...")
@@ -140,6 +140,73 @@ Convert this entire document into clear, natural audio narration text:"""
         
         # Return original content if enhancement fails
         return content
+
+
+def enhance_with_intelligent_chunking(content: str, api_key: str, progress_callback=None) -> str:
+    """
+    Intelligent chunking based on actual OpenAI token limits.
+    
+    - GPT-4o: 128,000 tokens total (input + output)
+    - We reserve 50,000 tokens for output, leaving ~78,000 for input
+    - This means each chunk can be ~234,000 characters (78k tokens * 3 chars/token)
+    """
+    
+    if progress_callback:
+        progress_callback("Using intelligent chunking based on OpenAI limits...")
+    
+    client = OpenAI(api_key=api_key)
+    
+    # Conservative chunking: 70,000 input tokens max per chunk (210,000 chars)
+    MAX_CHUNK_TOKENS = 70000
+    MAX_CHUNK_CHARS = MAX_CHUNK_TOKENS * 3  # 210,000 characters
+    
+    # Split content into appropriately sized chunks
+    chunks = []
+    current_pos = 0
+    
+    while current_pos < len(content):
+        # Find a good breaking point near the limit
+        end_pos = min(current_pos + MAX_CHUNK_CHARS, len(content))
+        
+        if end_pos < len(content):
+            # Look for a good break point (paragraph, section, etc.)
+            chunk_text = content[current_pos:end_pos]
+            
+            # Try to break at section boundaries first
+            for break_pattern in ['\n\\section{', '\n\\subsection{', '\n\n\n', '\n\n']:
+                last_break = chunk_text.rfind(break_pattern)
+                if last_break > MAX_CHUNK_CHARS * 0.7:  # At least 70% of max size
+                    end_pos = current_pos + last_break
+                    break
+        
+        chunk = content[current_pos:end_pos].strip()
+        if chunk:
+            chunks.append(chunk)
+        
+        current_pos = end_pos
+    
+    if progress_callback:
+        progress_callback(f"Split into {len(chunks)} intelligent chunks (avg {len(content)//len(chunks):,} chars each)")
+    
+    enhanced_chunks = []
+    
+    # Process each chunk with the full comprehensive prompt
+    for i, chunk in enumerate(chunks):
+        if progress_callback:
+            progress_callback(f"Processing chunk {i+1}/{len(chunks)} ({len(chunk):,} chars)...")
+        
+        try:
+            # Use the same comprehensive prompt as single-call approach
+            enhanced_chunk = enhance_with_simple_llm(chunk, api_key, None)  # No nested progress
+            enhanced_chunks.append(enhanced_chunk)
+            
+        except Exception as e:
+            if progress_callback:
+                progress_callback(f"Warning: Failed to enhance chunk {i+1}: {str(e)}")
+            # Keep original chunk if enhancement fails
+            enhanced_chunks.append(chunk)
+    
+    return '\n\n'.join(enhanced_chunks)
 
 
 def enhance_with_chunking_fallback(content: str, api_key: str, progress_callback=None) -> str:
@@ -205,14 +272,30 @@ def enhance_document_simple(content: str, api_key: str, progress_callback=None) 
     """
     Main entry point for simple LLM enhancement.
     
-    Tries single call first, falls back to chunking if needed.
+    Based on actual OpenAI limits:
+    - GPT-4o: 128,000 tokens total (input + output)
+    - GPT-4.1: 1,000,000 tokens total
+    - Rule of thumb: ~3-4 characters per token
     """
     
     if progress_callback:
         progress_callback(f"Starting enhancement for {len(content)} characters...")
     
-    # ALWAYS use single call - no chunking allowed per user requirement
-    if progress_callback:
-        progress_callback("Using SINGLE LLM call approach (no chunking)...")
+    # Calculate estimated tokens (conservative estimate: 3 chars per token)
+    estimated_input_tokens = len(content) // 3
+    estimated_output_tokens = estimated_input_tokens * 1.5  # Assume 1.5x expansion
+    total_estimated_tokens = estimated_input_tokens + estimated_output_tokens
     
-    return enhance_with_simple_llm(content, api_key, progress_callback)
+    # GPT-4o limit: 128,000 tokens total
+    GPT4O_TOKEN_LIMIT = 128000
+    
+    if total_estimated_tokens <= GPT4O_TOKEN_LIMIT:
+        if progress_callback:
+            progress_callback(f"Using SINGLE LLM call ({estimated_input_tokens:,} input + {estimated_output_tokens:,} estimated output = {total_estimated_tokens:,} tokens, within {GPT4O_TOKEN_LIMIT:,} limit)")
+        
+        return enhance_with_simple_llm(content, api_key, progress_callback)
+    else:
+        if progress_callback:
+            progress_callback(f"Content too large ({total_estimated_tokens:,} tokens > {GPT4O_TOKEN_LIMIT:,} limit). Using intelligent chunking with SINGLE call per chunk...")
+        
+        return enhance_with_intelligent_chunking(content, api_key, progress_callback)
