@@ -88,7 +88,15 @@ Convert this entire document into clear, natural audio narration text:"""
 
     try:
         if progress_callback:
-            progress_callback("Sending request to LLM...")
+            progress_callback(f"Sending {len(content)} chars to LLM (may take 30-60 seconds)...")
+        
+        # Calculate appropriate max_tokens based on input size
+        # Rule of thumb: output should be similar size or slightly larger
+        estimated_tokens = len(content) // 3  # Rough estimate: 3 chars per token
+        max_output_tokens = max(4000, min(8000, estimated_tokens * 2))  # 2x input, capped at 8k
+        
+        if progress_callback:
+            progress_callback(f"Using max_tokens={max_output_tokens} for this request...")
             
         response = client.chat.completions.create(
             model="gpt-4",
@@ -103,13 +111,14 @@ Convert this entire document into clear, natural audio narration text:"""
                 }
             ],
             temperature=0.1,
-            max_tokens=4000
+            max_tokens=max_output_tokens,
+            timeout=120  # 2 minute timeout
         )
         
         result = response.choices[0].message.content.strip()
         
         if progress_callback:
-            progress_callback("Simple LLM enhancement completed!")
+            progress_callback(f"LLM response received: {len(result)} characters")
             
         return result
         
@@ -117,6 +126,17 @@ Convert this entire document into clear, natural audio narration text:"""
         error_msg = f"Simple LLM enhancement failed: {str(e)}"
         if progress_callback:
             progress_callback(error_msg)
+        
+        # For debugging, show more details
+        if "timeout" in str(e).lower():
+            error_msg += " (Request timed out - content may be too large)"
+        elif "tokens" in str(e).lower():
+            error_msg += f" (Token limit issue - content was {len(content)} chars)"
+        elif "rate_limit" in str(e).lower():
+            error_msg += " (Rate limit exceeded - try again in a moment)"
+        
+        if progress_callback:
+            progress_callback(f"Detailed error: {error_msg}")
         
         # Return original content if enhancement fails
         return content
@@ -188,13 +208,11 @@ def enhance_document_simple(content: str, api_key: str, progress_callback=None) 
     Tries single call first, falls back to chunking if needed.
     """
     
-    # Try single call first
-    try:
-        if len(content) < 15000:  # Reasonable size for single call
-            return enhance_with_simple_llm(content, api_key, progress_callback)
-    except Exception as e:
-        if progress_callback:
-            progress_callback(f"Single call failed: {str(e)}, trying chunked approach...")
+    if progress_callback:
+        progress_callback(f"Starting enhancement for {len(content)} characters...")
     
-    # Fallback to chunking
-    return enhance_with_chunking_fallback(content, api_key, progress_callback)
+    # ALWAYS use single call - no chunking allowed per user requirement
+    if progress_callback:
+        progress_callback("Using SINGLE LLM call approach (no chunking)...")
+    
+    return enhance_with_simple_llm(content, api_key, progress_callback)
