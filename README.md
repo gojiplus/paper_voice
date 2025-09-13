@@ -2,7 +2,6 @@
 
 
 [![PyPI version](https://img.shields.io/pypi/v/paper_voice.svg)](https://pypi.org/project/paper_voice/)
-[![License](https://img.shields.io/pypi/l/paper_voice.svg)](https://pypi.org/project/paper_voice/)
 [![Downloads](https://static.pepy.tech/badge/paper_voice)](https://pepy.tech/project/paper_voice)
 [![Python application](https://github.com/gojiplus/paper_voice/actions/workflows/main.yml/badge.svg)](https://github.com/gojiplus/paper_voice/actions/workflows/main.yml)
 
