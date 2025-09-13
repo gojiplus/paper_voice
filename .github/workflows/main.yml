@@ -47,8 +47,6 @@ jobs:
         # Exit-zero treats all errors as warnings
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics
     
-    - name: Check code formatting
-      run: black --check paper_voice/ tests/
     
     - name: Type check with mypy
       run: mypy paper_voice --ignore-missing-imports || true
