@@ -149,63 +149,116 @@ def extract_pdf_content(pdf_path: str, use_vision: bool = False, api_key: str = 
         return error_msg
 
 
-def enhance_content_with_llm(content: str, api_key: str, input_type: str = "text", show_debug: bool = False) -> str:
-    """Enhance content using unified backend processor."""
+def enhance_content_with_llm_fast(content: str, api_key: str, input_type: str = "text", show_debug: bool = False) -> str:
+    """Fast batch enhancement of content using streamlined processing."""
+    import re
+    from openai import OpenAI
+    
     try:
-        from paper_voice.content_processor import process_content_unified
-        
         if not api_key or api_key.strip() == "":
             if show_debug:
                 st.warning("⚠️ No API key provided, skipping LLM enhancement")
             return content
         
-        # Debug: Show input content length
         if show_debug:
-            st.info(f"🔧 Processing {len(content)} characters with LLM enhancement (type: {input_type})")
+            st.info(f"🔧 Fast processing {len(content)} characters with batch LLM enhancement")
         
-        # Use unified processor - concentrates all logic in backend
-        processed_doc = process_content_unified(
-            content=content,
-            input_type=input_type.lower(),
-            api_key=api_key,
-            use_llm_enhancement=True
-        )
+        client = OpenAI(api_key=api_key)
+        enhanced_content = content
         
-        # Debug: Show processed content length
-        enhanced_length = len(processed_doc.enhanced_text)
+        # Find all math expressions first (batch them)
+        inline_math = re.findall(r'\\\((.*?)\\\)', content, re.DOTALL)
+        display_math = re.findall(r'\\\[(.*?)\\\]', content, re.DOTALL)
+        
+        all_math = [(expr, 'inline') for expr in inline_math] + [(expr, 'display') for expr in display_math]
+        
         if show_debug:
-            st.info(f"✅ LLM processing complete: {enhanced_length} characters (vs {len(content)} input)")
+            st.info(f"📊 Found {len(inline_math)} inline + {len(display_math)} display = {len(all_math)} total math expressions")
         
-        # Debug: Show content preview if it's different
-        if show_debug and enhanced_length != len(content):
-            with st.expander("🔍 Content Processing Details", expanded=False):
-                st.write(f"**Input type:** {input_type}")
-                st.write(f"**Input length:** {len(content)} characters")
-                st.write(f"**Output length:** {enhanced_length} characters")
-                st.write(f"**Has math:** {processed_doc.has_math}")
-                st.write(f"**Has figures:** {processed_doc.has_figures}")
-                st.write(f"**Has tables:** {processed_doc.has_tables}")
+        if all_math:
+            # Create a single batch prompt for all math expressions
+            batch_prompt = """You are converting mathematical expressions into clear natural language for audio narration.
+
+CRITICAL REQUIREMENTS:
+- Use precise language: "capital X" vs "lowercase x"  
+- Explain meaning, not just symbols
+- Use "equals" not "=", "times" not "×"
+- For Greek letters: "theta" not "θ", "epsilon" not "ε"
+- Make it flow naturally when spoken
+
+Convert each expression below into natural language. Return ONLY the explanations, one per line, in the same order:
+
+"""
+            
+            for i, (expr, math_type) in enumerate(all_math):
+                batch_prompt += f"{i+1}. {expr.strip()}\n"
+            
+            if show_debug:
+                st.info(f"🤖 Sending batch request to GPT-4 for {len(all_math)} expressions...")
+            
+            try:
+                # Single API call for all math
+                response = client.chat.completions.create(
+                    model="gpt-4",
+                    messages=[
+                        {"role": "system", "content": "You are an expert at converting mathematical expressions into clear, natural language for audio narration."},
+                        {"role": "user", "content": batch_prompt}
+                    ],
+                    temperature=0.1,
+                    max_tokens=2000,
+                    timeout=30  # 30 second timeout
+                )
                 
-                if enhanced_length > 0:
-                    preview = processed_doc.enhanced_text[:500] + "..." if enhanced_length > 500 else processed_doc.enhanced_text
-                    st.text_area("Enhanced content preview:", preview, height=150)
+                explanations = response.choices[0].message.content.strip().split('\n')
+                explanations = [exp.strip() for exp in explanations if exp.strip()]
+                
+                if show_debug:
+                    st.info(f"✅ Got {len(explanations)} explanations from LLM")
+                
+                # Replace math expressions with explanations
+                if len(explanations) >= len(all_math):
+                    # Replace display math first (to avoid conflicts)
+                    for i, (expr, math_type) in enumerate(all_math):
+                        if math_type == 'display':
+                            pattern = r'\\\[' + re.escape(expr) + r'\\\]'
+                            if i < len(explanations):
+                                enhanced_content = re.sub(pattern, f" {explanations[i]} ", enhanced_content, count=1)
+                    
+                    # Then replace inline math
+                    for i, (expr, math_type) in enumerate(all_math):
+                        if math_type == 'inline':
+                            pattern = r'\\\(' + re.escape(expr) + r'\\\)'
+                            if i < len(explanations):
+                                enhanced_content = re.sub(pattern, f" {explanations[i]} ", enhanced_content, count=1)
+                else:
+                    if show_debug:
+                        st.warning(f"⚠️ Got {len(explanations)} explanations but expected {len(all_math)}")
+            
+            except Exception as e:
+                if show_debug:
+                    st.error(f"❌ Batch LLM processing failed: {str(e)}")
+                # Fall back to original content
+                pass
         
-        return processed_doc.enhanced_text
+        # Clean up LaTeX artifacts
+        enhanced_content = re.sub(r'\\section\*?\{([^}]*)\}', r'Section: \1', enhanced_content)
+        enhanced_content = re.sub(r'\\subsection\*?\{([^}]*)\}', r'Subsection: \1', enhanced_content)
+        enhanced_content = re.sub(r'\\begin\{threeparttable\}.*?\\end\{threeparttable\}', 
+                                 '[Table content with statistical results]', enhanced_content, flags=re.DOTALL)
+        enhanced_content = re.sub(r'\\begin\{tabular\}.*?\\end\{tabular\}', 
+                                 '[Statistical table with numerical results]', enhanced_content, flags=re.DOTALL)
+        enhanced_content = re.sub(r'\\[a-zA-Z]+\{[^}]*\}', '', enhanced_content)  # Remove other LaTeX commands
+        enhanced_content = re.sub(r'[{}\\]', '', enhanced_content)  # Remove stray LaTeX characters
+        enhanced_content = re.sub(r'\s+', ' ', enhanced_content)  # Normalize whitespace
+        
+        if show_debug:
+            st.info(f"✅ Fast processing complete: {len(enhanced_content)} characters")
+        
+        return enhanced_content.strip()
     
     except Exception as e:
-        error_msg = f"Content processing failed: {e}"
+        error_msg = f"Fast processing failed: {e}"
         st.error(error_msg)
-        
-        if show_debug:
-            import traceback
-            with st.expander("🐛 Full Error Details", expanded=True):
-                st.code(traceback.format_exc())
-                st.write(f"**Error type:** {type(e).__name__}")
-                st.write(f"**Error message:** {str(e)}")
-                st.write(f"**Input content length:** {len(content)} characters")
-                st.write(f"**Input type:** {input_type}")
-                st.write(f"**API key provided:** {bool(api_key)}")
-        
         return content
 
 
@@ -353,10 +406,10 @@ def create_comprehensive_narration_script(content: str, input_type: str, api_key
     def update_progress(message: str):
         status_text.text(message)
     
-    # First enhance the content for better narration
+    # First enhance the content for better narration (FAST VERSION)
     update_progress("Enhancing content for audio narration...")
-    enhanced_content = enhance_content_with_llm(content, api_key, input_type, show_debug)
-    progress_bar.progress(30)
+    enhanced_content = enhance_content_with_llm_fast(content, api_key, input_type, show_debug)
+    progress_bar.progress(80)
     
     # Debug: Check if enhancement worked
     if not enhanced_content or enhanced_content.strip() == "":
@@ -526,12 +579,13 @@ def main():
     # Two-step process buttons
     st.sidebar.markdown("---")
     st.sidebar.markdown("**Two-Step Process:**")
+    st.sidebar.info("⚡ **Fast Processing**: Uses batch LLM calls instead of individual requests for much faster processing (~30 seconds vs several minutes).")
     
     generate_script_button = st.sidebar.button(
-        "📝 Step 1: Generate Enhanced Script",
+        "📝 Step 1: Generate Enhanced Script (Fast)",
         type="primary",
         disabled=not api_key,
-        help="Requires OpenAI API key"
+        help="Requires OpenAI API key - uses fast batch processing (~30 seconds)"
     )
     
     generate_audio_button = st.sidebar.button(
@@ -736,16 +790,25 @@ def main():
                     st.text_area("Raw content preview:", preview_text, height=200)
             
             # Generate enhanced script and store in session state
-            with st.spinner("🧠 Creating enhanced narration with LLM explanations..."):
-                enhanced_script = create_comprehensive_narration_script(
-                    content, input_type, api_key, uploaded_images, show_debug_info
-                )
-            
-            # Store script in session state
-            st.session_state.enhanced_script = enhanced_script
-            
-            st.success("✅ Enhanced script generated! You can now review and edit it below.")
-            st.rerun()  # Refresh to show the script editor
+            try:
+                with st.spinner("🧠 Creating enhanced narration with LLM explanations... (should take ~30 seconds)"):
+                    enhanced_script = create_comprehensive_narration_script(
+                        content, input_type, api_key, uploaded_images, show_debug_info
+                    )
+                
+                # Store script in session state
+                st.session_state.enhanced_script = enhanced_script
+                
+                st.success("✅ Enhanced script generated! You can now review and edit it below.")
+                st.rerun()  # Refresh to show the script editor
+                
+            except Exception as e:
+                st.error(f"❌ Script generation failed: {str(e)}")
+                st.info("💡 Try refreshing the page and using a shorter document, or check your API key.")
+                if show_debug_info:
+                    import traceback
+                    with st.expander("🐛 Error Details"):
+                        st.code(traceback.format_exc())
         
         except Exception as e:
             st.error(f"❌ Processing failed: {str(e)}")

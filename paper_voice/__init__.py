@@ -3,38 +3,38 @@ paper_voice
 =================================
 
 This package provides functionality for converting academic PDFs into spoken audio.
-The goal is to support reading technical papers in a way that respects complex
-content such as mathematical expressions, tables, and figure captions.  The
-public API exposes a set of helper functions to extract structured text from
-PDFs, transform mathematics into speech-friendly phrases, summarise figures and
-tables via LLMs, and synthesise audio via either offline engines or the
-OpenAI Text‑to‑Speech API.
+The goal is to support reading technical papers by using LLM to convert mathematical 
+expressions and complex content into clear, narration-ready text.
+
+The package now uses a simplified approach: extract text, enhance with LLM, 
+and synthesize audio.
 
 Modules
 -------
 
 `pdf_utils`:
-    Helpers for extracting text, detecting math, and locating captions from PDF
-    documents.
+    Simple PDF text extraction utilities.
 
-`math_to_speech`:
-    Conversion utilities for mapping LaTeX/unicode mathematical expressions into
-    spoken equivalents.
+`simple_llm_enhancer`:
+    LLM-based enhancement that converts math expressions and cleans LaTeX artifacts.
+
+`selective_enhancer`:
+    Main interface for content enhancement using the simple LLM approach.
 
 `figure_table_summarizer`:
-    Optional integration for sending figure and table content to an LLM (OpenAI
-    API) for summarisation.
+    LLM integration for figure and table summarization.
 
 `tts`:
     Abstraction layer over text‑to‑speech engines. Supports offline
     synthesis via ``pyttsx3`` and cloud synthesis via the OpenAI TTS API.
 """
 
-from . import pdf_utils, math_to_speech, figure_table_summarizer, tts
+from . import pdf_utils, simple_llm_enhancer, selective_enhancer, figure_table_summarizer, tts
 
 __all__ = [
     "pdf_utils",
-    "math_to_speech",
+    "simple_llm_enhancer", 
+    "selective_enhancer",
     "figure_table_summarizer",
     "tts",
 ]
