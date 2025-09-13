@@ -99,7 +99,7 @@ Convert this entire document into clear, natural audio narration text:"""
             progress_callback(f"Using max_tokens={max_output_tokens} for this request...")
             
         response = client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-4o",
             messages=[
                 {
                     "role": "system", 
@@ -251,7 +251,7 @@ Enhanced version:"""
             
         try:
             response = client.chat.completions.create(
-                model="gpt-4",
+                model="gpt-4o",
                 messages=[
                     {
                         "role": "system",
