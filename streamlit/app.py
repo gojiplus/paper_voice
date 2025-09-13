@@ -24,7 +24,7 @@ try:
 except ImportError:
     # Fallback for direct execution
     import sys
-    sys.path.append(str(Path(__file__).parent))
+    sys.path.append(str(Path(__file__).parent.parent))
     from paper_voice.llm_math_explainer import (
         explain_math_with_llm_sync, explain_figure_with_llm_sync,
         explain_table_with_llm_sync, get_math_explanation_prompt
@@ -86,6 +86,46 @@ def extract_pdf_content(pdf_path: str) -> str:
         return f"Error extracting PDF content: {str(e)}"
 
 
+def enhance_content_with_llm(content: str, api_key: str, input_type: str = "text") -> str:
+    """Enhance content using LLM for better narration quality."""
+    try:
+        from paper_voice.pdf_content_enhancer import enhance_pdf_content_with_llm
+        
+        if input_type.lower() == "pdf":
+            # For PDF content, use the specialized enhancer
+            return enhance_pdf_content_with_llm(content, api_key)
+        else:
+            # For other content types, use a general enhancement
+            from openai import OpenAI
+            client = OpenAI(api_key=api_key)
+            
+            prompt = f"""You are preparing academic text for audio narration. Make the following improvements:
+
+1. **Fix mathematical expressions**: Convert any garbled math symbols to clear, speakable language
+2. **Improve clarity**: Rewrite complex sentences to be more natural when spoken
+3. **Add context**: Where helpful, add brief explanations of technical terms
+4. **Structure for audio**: Organize the content with clear transitions between sections
+
+Keep the academic content accurate while making it audio-friendly.
+
+Text to enhance:
+{content}
+
+Enhanced text for narration:"""
+            
+            response = client.chat.completions.create(
+                model="gpt-4",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.1
+            )
+            
+            return response.choices[0].message.content.strip()
+    
+    except Exception as e:
+        print(f"LLM enhancement failed: {e}")
+        return content
+
+
 def process_content_with_llm(content: str, api_key: str, progress_callback=None) -> str:
     """Process content using LLM for mathematical explanations."""
     
@@ -95,8 +135,8 @@ def process_content_with_llm(content: str, api_key: str, progress_callback=None)
     processed_content = content
     explanations_added = []
     
-    # Find and process display math ($$...$$)
-    display_math_pattern = r'\\$\\$(.*?)\\$\\$'
+    # Find and process display math ($$...$$) - correct regex patterns
+    display_math_pattern = r'\$\$(.*?)\$\$'
     display_matches = list(re.finditer(display_math_pattern, content, re.DOTALL))
     
     if display_matches:
@@ -125,7 +165,7 @@ def process_content_with_llm(content: str, api_key: str, progress_callback=None)
             explanations_added.append((f"$${math_expr}$$", explanation.natural_explanation))
     
     # Find and process inline math ($...$) - but not display math
-    inline_math_pattern = r'(?<!\\$)\\$([^$]+?)\\$(?!\\$)'
+    inline_math_pattern = r'(?<!\$)\$([^$]+?)\$(?!\$)'
     inline_matches = list(re.finditer(inline_math_pattern, processed_content))
     
     if inline_matches:
@@ -157,22 +197,29 @@ def process_content_with_llm(content: str, api_key: str, progress_callback=None)
             explanations_added.append((f"${math_expr}$", explanation.natural_explanation))
     
     # Process LaTeX environments (theorem, proposition, etc.)
-    theorem_pattern = r'\\\\begin\\{(theorem|proposition|lemma|corollary)\\}(.*?)\\\\end\\{\\1\\}'
+    theorem_pattern = r'\\begin\{(theorem|proposition|lemma|corollary)\}(.*?)\\end\{\1\}'
     theorem_matches = list(re.finditer(theorem_pattern, processed_content, re.DOTALL | re.IGNORECASE))
     
     if theorem_matches and progress_callback:
         progress_callback(f"Processing {len(theorem_matches)} theorems/propositions...")
     
     # Process LaTeX structural elements
-    processed_content = re.sub(r'\\\\section\\*?\\{([^}]*)\\}', r'Section: \\1', processed_content)
-    processed_content = re.sub(r'\\\\subsection\\*?\\{([^}]*)\\}', r'Subsection: \\1', processed_content)
-    processed_content = re.sub(r'\\\\title\\{([^}]*)\\}', r'Title: \\1', processed_content)
-    processed_content = re.sub(r'\\\\author\\{([^}]*)\\}', r'Author: \\1', processed_content)
+    processed_content = re.sub(r'\\section\*?\{([^}]*)\}', r'Section: \1', processed_content)
+    processed_content = re.sub(r'\\subsection\*?\{([^}]*)\}', r'Subsection: \1', processed_content)
+    processed_content = re.sub(r'\\subsubsection\*?\{([^}]*)\}', r'Subsubsection: \1', processed_content)
+    processed_content = re.sub(r'\\title\{([^}]*)\}', r'Title: \1', processed_content)
+    processed_content = re.sub(r'\\author\{([^}]*)\}', r'Author: \1', processed_content)
+    
+    # Handle common LaTeX environments
+    processed_content = re.sub(r'\\begin\{abstract\}(.*?)\\end\{abstract\}', r'Abstract: \1', processed_content, flags=re.DOTALL)
+    processed_content = re.sub(r'\\begin\{itemize\}(.*?)\\end\{itemize\}', r'\1', processed_content, flags=re.DOTALL)
+    processed_content = re.sub(r'\\begin\{enumerate\}(.*?)\\end\{enumerate\}', r'\1', processed_content, flags=re.DOTALL)
+    processed_content = re.sub(r'\\item\s*', '• ', processed_content)
     
     # Clean up remaining LaTeX commands
-    processed_content = re.sub(r'\\\\[a-zA-Z]+(?:\\[[^\\]]*\\])?(?:\\{[^}]*\\})*', ' ', processed_content)
+    processed_content = re.sub(r'\\[a-zA-Z]+(?:\[[^\]]*\])?(?:\{[^}]*\})*', ' ', processed_content)
     processed_content = re.sub(r'[{}]', '', processed_content)
-    processed_content = re.sub(r'\\s+', ' ', processed_content)
+    processed_content = re.sub(r'\s+', ' ', processed_content)
     
     if progress_callback:
         progress_callback("Mathematical processing complete!")
@@ -218,9 +265,14 @@ def create_comprehensive_narration_script(content: str, input_type: str, api_key
     def update_progress(message: str):
         status_text.text(message)
     
+    # First enhance the content for better narration
+    update_progress("Enhancing content for audio narration...")
+    enhanced_content = enhance_content_with_llm(content, api_key, input_type)
+    progress_bar.progress(30)
+    
     # Process mathematical content
     update_progress("Processing mathematical expressions...")
-    processed_content = process_content_with_llm(content, api_key, update_progress)
+    processed_content = process_content_with_llm(enhanced_content, api_key, update_progress)
     progress_bar.progress(70)
     
     # Process figures and tables
@@ -488,7 +540,7 @@ def main():
                     
                     try:
                         if use_openai_tts:
-                            output_file = tts.synthesize_speech(
+                            output_file = tts.synthesize_speech_chunked(
                                 edited_script,
                                 audio_path,
                                 use_openai=True,
@@ -496,7 +548,7 @@ def main():
                                 openai_voice=openai_voice
                             )
                         else:
-                            output_file = tts.synthesize_speech(
+                            output_file = tts.synthesize_speech_chunked(
                                 edited_script,
                                 audio_path,
                                 voice=offline_voice,

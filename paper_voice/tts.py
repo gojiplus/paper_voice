@@ -52,6 +52,117 @@ def _ensure_ffmpeg():
     pass
 
 
+def _split_text_for_tts(text: str, max_length: int = 4000) -> list[str]:
+    """Split text into chunks for TTS processing.
+    
+    Splits text at sentence boundaries to avoid cutting off in the middle of sentences.
+    OpenAI TTS has a 4096 character limit, so we use 4000 to be safe.
+    """
+    if len(text) <= max_length:
+        return [text]
+    
+    chunks = []
+    current_chunk = ""
+    
+    # Split by sentences first
+    sentences = text.split('. ')
+    
+    for i, sentence in enumerate(sentences):
+        # Add back the period except for the last sentence
+        if i < len(sentences) - 1:
+            sentence += '. '
+        
+        # Check if adding this sentence would exceed the limit
+        if len(current_chunk + sentence) > max_length:
+            if current_chunk:  # If we have content, save it
+                chunks.append(current_chunk.strip())
+                current_chunk = sentence
+            else:  # Single sentence is too long, split by words
+                words = sentence.split()
+                temp_chunk = ""
+                for word in words:
+                    if len(temp_chunk + " " + word) > max_length:
+                        if temp_chunk:
+                            chunks.append(temp_chunk.strip())
+                            temp_chunk = word
+                        else:
+                            # Single word is too long, just add it
+                            chunks.append(word)
+                    else:
+                        temp_chunk += " " + word if temp_chunk else word
+                if temp_chunk:
+                    current_chunk = temp_chunk
+        else:
+            current_chunk += sentence
+    
+    if current_chunk:
+        chunks.append(current_chunk.strip())
+    
+    return chunks
+
+
+def synthesize_speech_chunked(
+    text: str,
+    output_path: str,
+    voice: str = "",
+    rate: int = 200,
+    use_openai: bool = False,
+    api_key: Optional[str] = None,
+    model: str = "tts-1",
+    openai_voice: str = "alloy",
+) -> str:
+    """Synthesize speech with automatic text chunking for long texts.
+    
+    This function handles texts longer than the OpenAI TTS limit by splitting
+    them into chunks and concatenating the audio files.
+    """
+    if use_openai and len(text) > 4000:
+        # Split text into chunks
+        chunks = _split_text_for_tts(text)
+        
+        if len(chunks) == 1:
+            # No splitting needed, use regular function
+            return synthesize_speech(text, output_path, voice, rate, use_openai, 
+                                   api_key, model, openai_voice)
+        
+        # Generate audio for each chunk
+        temp_files = []
+        temp_dir = tempfile.mkdtemp(prefix="tts_chunks_")
+        
+        try:
+            for i, chunk in enumerate(chunks):
+                chunk_path = os.path.join(temp_dir, f"chunk_{i:03d}.mp3")
+                synthesize_speech(chunk, chunk_path, voice, rate, use_openai,
+                               api_key, model, openai_voice)
+                temp_files.append(chunk_path)
+            
+            # Concatenate audio files
+            if AudioSegment is None:
+                raise RuntimeError("pydub is required for concatenating audio chunks")
+            
+            combined = AudioSegment.empty()
+            for temp_file in temp_files:
+                chunk_audio = AudioSegment.from_mp3(temp_file)
+                combined += chunk_audio
+                # Add small pause between chunks
+                combined += AudioSegment.silent(duration=500)  # 500ms pause
+            
+            # Export final file
+            combined.export(output_path, format="mp3")
+            
+            return output_path
+            
+        finally:
+            # Clean up temporary files
+            import shutil
+            shutil.rmtree(temp_dir, ignore_errors=True)
+    
+    else:
+        # Use regular synthesis
+        return synthesize_speech(text, output_path, voice, rate, use_openai,
+                               api_key, model, openai_voice)
+
+
 def synthesize_speech(
     text: str,
     output_path: str,
