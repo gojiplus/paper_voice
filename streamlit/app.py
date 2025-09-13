@@ -20,6 +20,7 @@ try:
         explain_table_with_llm_sync, get_math_explanation_prompt
     )
     from paper_voice.latex_processor import extract_figures_and_tables, extract_latex_environments
+    from paper_voice.arxiv_downloader import download_arxiv_paper, ArxivPaper
     from paper_voice import pdf_utils, tts
 except ImportError:
     # Fallback for direct execution
@@ -30,6 +31,7 @@ except ImportError:
         explain_table_with_llm_sync, get_math_explanation_prompt
     )
     from paper_voice.latex_processor import extract_figures_and_tables, extract_latex_environments
+    from paper_voice.arxiv_downloader import download_arxiv_paper, ArxivPaper
     from paper_voice import pdf_utils, tts
 
 
@@ -69,9 +71,33 @@ def download_arxiv_pdf(arxiv_id: str, dest_path: str) -> Optional[str]:
     return None
 
 
-def extract_pdf_content(pdf_path: str) -> str:
+def extract_pdf_content(pdf_path: str, use_vision: bool = False, api_key: str = None) -> str:
     """Extract text content from PDF."""
     try:
+        if use_vision and api_key:
+            # Use vision analysis for better content separation
+            try:
+                from paper_voice.vision_pdf_analyzer import analyze_pdf_with_vision, create_enhanced_text_from_analysis
+                
+                st.info("🔍 Using GPT-4V to analyze PDF structure...")
+                analysis_result = analyze_pdf_with_vision(pdf_path, api_key, max_pages=10)  # Limit to 10 pages for cost
+                
+                enhanced_text = create_enhanced_text_from_analysis(analysis_result)
+                
+                # Show analysis summary
+                st.success(f"✅ Vision analysis complete: {len(analysis_result.content_blocks)} content blocks found")
+                with st.expander("📊 Analysis Summary", expanded=False):
+                    st.write(f"**Pages analyzed:** {analysis_result.metadata['total_pages']}")
+                    st.write(f"**Content blocks:** {analysis_result.metadata['total_content_blocks']}")
+                    st.write(f"**Content types found:** {', '.join(analysis_result.metadata['content_types'])}")
+                
+                return enhanced_text
+                
+            except Exception as e:
+                st.warning(f"⚠️ Vision analysis failed ({str(e)}), falling back to standard extraction")
+                # Fall back to standard extraction
+        
+        # Standard PDF text extraction
         pages = pdf_utils.extract_raw_text(pdf_path)
         # Clean up the text and join with proper spacing
         cleaned_pages = []
@@ -377,7 +403,7 @@ def main():
     elif input_method == "arXiv Download":
         arxiv_input = st.sidebar.text_input(
             "📚 arXiv ID or URL",
-            help="e.g., 2301.12345 or https://arxiv.org/abs/2301.12345"
+            help="e.g., 2301.12345 or https://arxiv.org/abs/2301.12345. Downloads LaTeX source + figures for best quality."
         )
         
     elif input_method == "Direct Text Input":
@@ -386,6 +412,15 @@ def main():
             height=200,
             help="Paste your LaTeX, Markdown, or text with math expressions"
         )
+    
+    # Advanced options
+    st.sidebar.header("⚙️ Advanced Options")
+    
+    use_vision_pdf = st.sidebar.checkbox(
+        "🔍 Use Vision AI for PDF Analysis",
+        value=False,
+        help="Use GPT-4V to analyze PDF layout and separate figures/math/tables (slower but higher quality)"
+    )
     
     # Audio options
     st.sidebar.header("🎵 Audio Options")
@@ -477,7 +512,7 @@ def main():
                         # Save PDF temporarily and extract text
                         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
                             tmp.write(file.read())
-                            pdf_content = extract_pdf_content(tmp.name)
+                            pdf_content = extract_pdf_content(tmp.name, use_vision=use_vision_pdf, api_key=api_key)
                             all_content.append(f"=== {file.name} ===\\n{pdf_content}")
                             os.unlink(tmp.name)
                         input_type = "PDF"
@@ -489,21 +524,33 @@ def main():
                 content = "\\n\\n".join(all_content)
                 
             elif input_method == "arXiv Download" and arxiv_input.strip():
-                with st.spinner("📥 Downloading from arXiv..."):
-                    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-                        pdf_path = download_arxiv_pdf(arxiv_input.strip(), tmp.name)
-                        if pdf_path:
-                            content = extract_pdf_content(pdf_path)
-                            input_type = "PDF"
-                            os.unlink(tmp.name)
-                        else:
-                            # Extract ID for better error message
-                            id_match = re.search(r"(?:abs|pdf)/(\d+\.\d+)(?:\.pdf)?", arxiv_input.strip())
-                            arxiv_id = id_match.group(1) if id_match else arxiv_input.strip()
-                            st.error(f"❌ Failed to download from arXiv. Paper ID: {arxiv_id}")
-                            st.info("💡 Try again in a few minutes - arXiv servers may be temporarily unavailable.")
-                            st.info("🔍 You can also try uploading the PDF directly if you have it downloaded.")
-                            return
+                with st.spinner("📥 Downloading LaTeX source from arXiv..."):
+                    paper = download_arxiv_paper(arxiv_input.strip())
+                    if paper:
+                        st.success(f"✅ Downloaded: {paper.title}")
+                        content = paper.latex_content
+                        input_type = "LaTeX"
+                        
+                        # Display metadata
+                        if paper.metadata:
+                            with st.expander("📋 Paper Information", expanded=False):
+                                if 'title' in paper.metadata:
+                                    st.write(f"**Title:** {paper.metadata['title']}")
+                                if 'author' in paper.metadata:
+                                    st.write(f"**Author(s):** {paper.metadata['author']}")
+                                if 'abstract' in paper.metadata:
+                                    st.write(f"**Abstract:** {paper.metadata['abstract'][:500]}...")
+                                st.write(f"**Figures found:** {len(paper.figures)}")
+                                if paper.figures:
+                                    st.write(f"**Figure files:** {', '.join(list(paper.figures.keys())[:5])}")
+                    else:
+                        st.error(f"❌ Failed to download LaTeX source from arXiv.")
+                        st.info("💡 This could be because:")
+                        st.info("• The paper source is not available (some older papers)")
+                        st.info("• The paper ID/URL is invalid")
+                        st.info("• arXiv servers are temporarily unavailable")
+                        st.info("🔍 You can try uploading the PDF directly or paste the paper content as text.")
+                        return
                             
             elif input_method == "Direct Text Input" and direct_text.strip():
                 content = direct_text
