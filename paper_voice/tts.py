@@ -18,7 +18,12 @@ from __future__ import annotations
 
 import os
 import tempfile
+import warnings
 from typing import Optional
+
+# Filter out pydub SyntaxWarnings for Python 3.13+ compatibility before import
+warnings.filterwarnings("ignore", category=SyntaxWarning, module="pydub.utils")
+warnings.filterwarnings("ignore", message="invalid escape sequence", category=SyntaxWarning)
 
 try:
     import pyttsx3

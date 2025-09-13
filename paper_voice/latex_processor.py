@@ -301,48 +301,51 @@ def process_latex_environments(text: str, environments: Dict[str, List[Tuple[int
 
 
 def process_inline_and_display_math(text: str, api_key: Optional[str] = None, use_llm: bool = True) -> str:
-    """Process inline $...$ and display $$...$$ math."""
+    """Process inline and display math in all LaTeX formats."""
+    
+    # Define all math patterns (display and inline)
+    math_patterns = [
+        # Display math patterns
+        (r'\$\$(.*?)\$\$', 'display', re.DOTALL),           # $$...$$
+        (r'\\\[(.*?)\\\]', 'display', re.DOTALL),           # \[...\]
+        
+        # Inline math patterns  
+        (r'(?<!\$)\$([^$]+?)\$(?!\$)', 'inline', 0),        # $...$ (not display)
+        (r'\\\((.*?)\\\)', 'inline', 0),                    # \(...\)
+    ]
     
     if use_llm and api_key:
         # Use LLM for high-quality math explanations
         try:
             from .llm_math_explainer import explain_math_with_llm_sync
             
-            # Handle display math first ($$...$$)
-            def replace_display_math_llm(match):
-                content = match.group(1).strip()
-                # Get context around the expression for better explanation
-                start = max(0, match.start() - 200)
-                end = min(len(text), match.end() + 200)
-                context = text[start:end]
+            # Process each math pattern
+            for pattern, math_type, flags in math_patterns:
+                def create_replacer(math_type):
+                    def replace_math_llm(match):
+                        content = match.group(1).strip()
+                        if not content:  # Skip empty expressions
+                            return match.group(0)
+                        
+                        # Get context around the expression for better explanation
+                        context_size = 200 if math_type == 'display' else 150
+                        start = max(0, match.start() - context_size)
+                        end = min(len(text), match.end() + context_size)
+                        context = text[start:end]
+                        
+                        try:
+                            explanation = explain_math_with_llm_sync(content, api_key, context)
+                            return f" {explanation.natural_explanation} "
+                        except Exception:
+                            # Fallback to basic conversion
+                            spoken = latex_math_to_speech(content)
+                            if math_type == 'display':
+                                return f"Display equation: {spoken}"
+                            else:
+                                return spoken
+                    return replace_math_llm
                 
-                try:
-                    explanation = explain_math_with_llm_sync(content, api_key, context)
-                    return f" {explanation.natural_explanation} "
-                except Exception:
-                    # Fallback to basic conversion
-                    spoken = latex_math_to_speech(content)
-                    return f"Display equation: {spoken}"
-            
-            text = re.sub(r'\$\$(.*?)\$\$', replace_display_math_llm, text, flags=re.DOTALL)
-            
-            # Handle inline math ($...$)
-            def replace_inline_math_llm(match):
-                content = match.group(1).strip()
-                # Get context for inline math
-                start = max(0, match.start() - 150)
-                end = min(len(text), match.end() + 150)
-                context = text[start:end]
-                
-                try:
-                    explanation = explain_math_with_llm_sync(content, api_key, context)
-                    return f" {explanation.natural_explanation} "
-                except Exception:
-                    # Fallback to basic conversion
-                    spoken = latex_math_to_speech(content)
-                    return spoken
-            
-            text = re.sub(r'(?<!\$)\$([^$]+?)\$(?!\$)', replace_inline_math_llm, text)
+                text = re.sub(pattern, create_replacer(math_type), text, flags=flags)
             
         except ImportError:
             # Fall back to basic processing if LLM module not available
@@ -350,20 +353,21 @@ def process_inline_and_display_math(text: str, api_key: Optional[str] = None, us
     
     if not use_llm or not api_key:
         # Use basic rule-based math conversion
-        def replace_display_math(match):
-            content = match.group(1)
-            spoken = latex_math_to_speech(content)
-            return f"Display equation: {spoken}"
-        
-        text = re.sub(r'\$\$(.*?)\$\$', replace_display_math, text, flags=re.DOTALL)
-        
-        # Handle inline math ($...$)
-        def replace_inline_math(match):
-            content = match.group(1)
-            spoken = latex_math_to_speech(content)
-            return spoken
-        
-        text = re.sub(r'(?<!\$)\$([^$]+?)\$(?!\$)', replace_inline_math, text)
+        for pattern, math_type, flags in math_patterns:
+            def create_basic_replacer(math_type):
+                def replace_math_basic(match):
+                    content = match.group(1).strip()
+                    if not content:  # Skip empty expressions
+                        return match.group(0)
+                    
+                    spoken = latex_math_to_speech(content)
+                    if math_type == 'display':
+                        return f"Display equation: {spoken}"
+                    else:
+                        return spoken
+                return replace_math_basic
+            
+            text = re.sub(pattern, create_basic_replacer(math_type), text, flags=flags)
     
     return text
 

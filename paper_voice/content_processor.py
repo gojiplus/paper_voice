@@ -70,11 +70,14 @@ def process_content_unified(
     metadata = {}
     enhanced_text = content
     
-    if input_type.lower() == 'latex':
+    if input_type.lower() in ['latex', 'tex']:
         if progress_callback:
             progress_callback("Processing LaTeX document with math, figures, tables...")
         
         # Use the comprehensive LaTeX processor
+        if progress_callback:
+            progress_callback(f"Launching LaTeX processor for {len(content)} characters...")
+            
         processed = process_latex_document(
             content,
             summarize_figures=use_llm_enhancement and api_key is not None,
@@ -88,6 +91,9 @@ def process_content_unified(
         tables = processed.tables
         equations = processed.equations
         metadata = processed.metadata
+        
+        if progress_callback:
+            progress_callback(f"LaTeX processing complete: {len(enhanced_text)} chars, {len(figures)} figures, {len(tables)} tables, {len(equations)} equations")
         
     elif input_type.lower() == 'markdown':
         if progress_callback:
@@ -106,10 +112,25 @@ def process_content_unified(
         
         if use_llm_enhancement and api_key:
             # For PDF, first fix extraction issues, then selective enhancement
-            enhanced_text = fix_pdf_extraction_issues(content, api_key)
             if progress_callback:
-                progress_callback("Applying selective enhancement to PDF content...")
-            enhanced_text = enhance_content_selectively(enhanced_text, api_key, progress_callback)
+                progress_callback(f"Fixing PDF extraction issues for {len(content)} characters...")
+            
+            try:
+                enhanced_text = fix_pdf_extraction_issues(content, api_key)
+                if progress_callback:
+                    progress_callback(f"PDF extraction fix complete: {len(enhanced_text)} characters")
+                    
+                if progress_callback:
+                    progress_callback("Applying selective enhancement to PDF content...")
+                enhanced_text = enhance_content_selectively(enhanced_text, api_key, progress_callback)
+                
+                if progress_callback:
+                    progress_callback(f"PDF selective enhancement complete: {len(enhanced_text)} characters")
+                    
+            except Exception as e:
+                if progress_callback:
+                    progress_callback(f"PDF processing failed: {str(e)}")
+                enhanced_text = content
         else:
             enhanced_text = content
             

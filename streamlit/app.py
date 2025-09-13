@@ -15,7 +15,19 @@ from typing import Optional, List, Dict, Any, Tuple
 import streamlit as st
 
 # Filter out pydub SyntaxWarnings for Python 3.13+ compatibility
+# These warnings come from invalid escape sequences in pydub's regex patterns
 warnings.filterwarnings("ignore", category=SyntaxWarning, module="pydub.utils")
+warnings.filterwarnings("ignore", message="invalid escape sequence", category=SyntaxWarning)
+warnings.filterwarnings("ignore", message=r"invalid escape sequence.*", category=SyntaxWarning)
+
+# Also suppress at import time
+import warnings
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore", SyntaxWarning)
+    try:
+        import pydub
+    except ImportError:
+        pass
 
 # Import our modules
 try:
@@ -183,8 +195,17 @@ def enhance_content_with_llm(content: str, api_key: str, input_type: str = "text
     except Exception as e:
         error_msg = f"Content processing failed: {e}"
         st.error(error_msg)
-        import traceback
-        st.text(traceback.format_exc())
+        
+        if show_debug:
+            import traceback
+            with st.expander("🐛 Full Error Details", expanded=True):
+                st.code(traceback.format_exc())
+                st.write(f"**Error type:** {type(e).__name__}")
+                st.write(f"**Error message:** {str(e)}")
+                st.write(f"**Input content length:** {len(content)} characters")
+                st.write(f"**Input type:** {input_type}")
+                st.write(f"**API key provided:** {bool(api_key)}")
+        
         return content
 
 
@@ -340,6 +361,16 @@ def create_comprehensive_narration_script(content: str, input_type: str, api_key
     # Debug: Check if enhancement worked
     if not enhanced_content or enhanced_content.strip() == "":
         st.error("❌ Enhanced content is empty! Check content processing pipeline.")
+        st.error(f"**Debug Info:**")
+        st.error(f"- Original content length: {len(content)} characters") 
+        st.error(f"- Enhanced content: '{enhanced_content}'")
+        st.error(f"- Enhanced content type: {type(enhanced_content)}")
+        
+        # Show the raw content to debug
+        if show_debug:
+            with st.expander("🔍 Original Content for Debugging", expanded=True):
+                st.text_area("Original content that failed to enhance:", content[:2000] + "..." if len(content) > 2000 else content, height=300)
+        
         return intro  # Return just the introduction
     
     # The enhanced_content already has all math, figures, tables processed
@@ -560,7 +591,14 @@ def main():
                     else:
                         file_content = file.read().decode('utf-8')
                         all_content.append(f"=== {file.name} ===\\n{file_content}")
-                        input_type = file_ext.upper()
+                        
+                        # Map file extensions to proper input types
+                        if file_ext in ['tex', 'latex']:
+                            input_type = "LaTeX"
+                        elif file_ext in ['md', 'markdown']:
+                            input_type = "Markdown"
+                        else:
+                            input_type = "Text"
                 
                 content = "\\n\\n".join(all_content)
                 

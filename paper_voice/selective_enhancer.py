@@ -43,6 +43,9 @@ def enhance_content_selectively(content: str, api_key: str, progress_callback=No
     
     enhanced_content = content
     
+    # 0. Clean up LaTeX artifacts first
+    enhanced_content = _clean_latex_artifacts(enhanced_content, progress_callback)
+    
     # 1. Enhance mathematical expressions
     enhanced_content = _enhance_math_expressions(enhanced_content, api_key, progress_callback)
     
@@ -63,64 +66,57 @@ def _enhance_math_expressions(content: str, api_key: str, progress_callback=None
     
     processed_content = content
     
-    # Find and process display math ($$...$$)
-    display_math_pattern = r'\$\$(.*?)\$\$'
-    display_matches = list(re.finditer(display_math_pattern, content, re.DOTALL))
-    
-    if display_matches:
-        if progress_callback:
-            progress_callback(f"Enhancing {len(display_matches)} display equations...")
+    # Define all math patterns (display and inline)
+    math_patterns = [
+        # Display math patterns
+        (r'\$\$(.*?)\$\$', 'display', '$$...$$'),           # $$...$$
+        (r'\\\[(.*?)\\\]', 'display', r'\[...\]'),          # \[...\]
         
-        # Process in reverse order to maintain positions
-        for i, match in enumerate(reversed(display_matches)):
-            math_expr = match.group(1).strip()
-            
-            # Get context around the expression
-            context_start = max(0, match.start() - 500)
-            context_end = min(len(content), match.end() + 500)
-            context = content[context_start:context_end]
-            
-            # Get LLM explanation
-            try:
-                explanation = explain_math_with_llm_sync(math_expr, api_key, context)
-                replacement = f" {explanation.natural_explanation} "
-                processed_content = (processed_content[:match.start()] + 
-                                   replacement + 
-                                   processed_content[match.end():])
-            except Exception as e:
-                if progress_callback:
-                    progress_callback(f"Warning: Failed to enhance equation {i+1}: {str(e)}")
-                # Keep original if enhancement fails
-                continue
+        # Inline math patterns  
+        (r'(?<!\$)\$([^$]+?)\$(?!\$)', 'inline', '$...$'),  # $...$ (not display)
+        (r'\\\((.*?)\\\)', 'inline', r'\(...\)'),           # \(...\)
+    ]
     
-    # Find and process inline math ($...$) - but not display math
-    inline_math_pattern = r'(?<!\$)\$([^$]+?)\$(?!\$)'
-    inline_matches = list(re.finditer(inline_math_pattern, processed_content))
+    total_math_count = 0
     
-    if inline_matches:
-        if progress_callback:
-            progress_callback(f"Enhancing {len(inline_matches)} inline expressions...")
+    # Process each math pattern
+    for pattern, math_type, pattern_name in math_patterns:
+        matches = list(re.finditer(pattern, processed_content, re.DOTALL))
         
-        # Process in reverse order to maintain positions
-        for i, match in enumerate(reversed(inline_matches)):
-            math_expr = match.group(1).strip()
+        if matches:
+            total_math_count += len(matches)
+            if progress_callback:
+                progress_callback(f"Enhancing {len(matches)} {math_type} expressions ({pattern_name})...")
             
-            # Get context around the expression
-            context_start = max(0, match.start() - 300)
-            context_end = min(len(processed_content), match.end() + 300)
-            context = processed_content[context_start:context_end]
-            
-            try:
-                explanation = explain_math_with_llm_sync(math_expr, api_key, context)
-                replacement = f" {explanation.natural_explanation} "
-                processed_content = (processed_content[:match.start()] + 
-                                   replacement + 
-                                   processed_content[match.end():])
-            except Exception as e:
-                if progress_callback:
-                    progress_callback(f"Warning: Failed to enhance inline expression {i+1}: {str(e)}")
-                # Keep original if enhancement fails
-                continue
+            # Process in reverse order to maintain positions
+            for i, match in enumerate(reversed(matches)):
+                math_expr = match.group(1).strip()
+                
+                # Skip empty expressions
+                if not math_expr:
+                    continue
+                
+                # Get context around the expression
+                context_size = 500 if math_type == 'display' else 300
+                context_start = max(0, match.start() - context_size)
+                context_end = min(len(processed_content), match.end() + context_size)
+                context = processed_content[context_start:context_end]
+                
+                # Get LLM explanation
+                try:
+                    explanation = explain_math_with_llm_sync(math_expr, api_key, context)
+                    replacement = f" {explanation.natural_explanation} "
+                    processed_content = (processed_content[:match.start()] + 
+                                       replacement + 
+                                       processed_content[match.end():])
+                except Exception as e:
+                    if progress_callback:
+                        progress_callback(f"Warning: Failed to enhance {math_type} expression {i+1} ({pattern_name}): {str(e)}")
+                    # Keep original if enhancement fails
+                    continue
+    
+    if total_math_count > 0 and progress_callback:
+        progress_callback(f"Enhanced {total_math_count} mathematical expressions total")
     
     return processed_content
 
@@ -281,3 +277,48 @@ Fixed sentence (keep all non-mathematical text identical):"""
             enhanced_sentences.append(sentence)
     
     return '. '.join(enhanced_sentences)
+
+
+def _clean_latex_artifacts(content: str, progress_callback=None) -> str:
+    """Clean up common LaTeX artifacts that interfere with processing."""
+    
+    if progress_callback:
+        progress_callback("Cleaning LaTeX artifacts...")
+    
+    cleaned_content = content
+    
+    # Fix broken citations like "bin1996}"
+    cleaned_content = re.sub(r'\b[a-z]+\d{4}\}', '', cleaned_content)
+    
+    # Fix common LaTeX command artifacts
+    latex_cleanups = [
+        # Remove common LaTeX commands that don't translate well
+        (r'\\cite\{[^}]+\}', ''),                # Citations
+        (r'\\ref\{[^}]+\}', ''),                 # References  
+        (r'\\label\{[^}]+\}', ''),               # Labels
+        (r'\\footnote\{[^}]+\}', ''),            # Footnotes
+        
+        # Fix spacing issues around math
+        (r'\s*\\\(\s*', ' \\('),                 # Fix spacing before \(
+        (r'\s*\\\)\s*', '\\) '),                 # Fix spacing after \)
+        (r'\s*\\\[\s*', ' \\['),                 # Fix spacing before \[
+        (r'\s*\\\]\s*', '\\] '),                 # Fix spacing after \]
+        
+        # Remove stray backslashes and braces
+        (r'(?<!\\)\\(?![a-zA-Z\[\(])', ''),      # Stray backslashes
+        (r'\{([^{}]*)\}', r'\1'),                # Remove unnecessary braces (simple cases)
+        
+        # Fix multiple spaces
+        (r'\s+', ' '),                           # Multiple spaces to single
+    ]
+    
+    for pattern, replacement in latex_cleanups:
+        cleaned_content = re.sub(pattern, replacement, cleaned_content)
+    
+    # Clean up any remaining artifacts
+    cleaned_content = cleaned_content.strip()
+    
+    if progress_callback:
+        progress_callback("LaTeX cleanup completed")
+    
+    return cleaned_content

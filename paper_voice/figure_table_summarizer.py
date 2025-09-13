@@ -133,3 +133,14 @@ def summarise_table(rows: List[str], api_key: Optional[str] = None) -> str:
         return summary
     except Exception:
         return " ".join(rows)
+
+
+# American spelling aliases for compatibility
+def summarize_figure_with_llm(caption: str, api_key: Optional[str] = None) -> str:
+    """American spelling alias for summarise_caption with figure type."""
+    return summarise_caption(caption, kind="figure", api_key=api_key)
+
+
+def summarize_table_with_llm(caption: str, api_key: Optional[str] = None) -> str:
+    """American spelling alias for summarise_caption with table type."""
+    return summarise_caption(caption, kind="table", api_key=api_key)
