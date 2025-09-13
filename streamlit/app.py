@@ -29,26 +29,14 @@ with warnings.catch_warnings():
     except ImportError:
         pass
 
-# Import our modules
+# Import our simplified modules
 try:
-    from paper_voice.llm_math_explainer import (
-        explain_math_with_llm_sync, explain_figure_with_llm_sync, 
-        explain_table_with_llm_sync, get_math_explanation_prompt
-    )
-    from paper_voice.latex_processor import extract_figures_and_tables, extract_latex_environments
-    from paper_voice.arxiv_downloader import download_arxiv_paper, ArxivPaper
-    from paper_voice import pdf_utils, tts
+    from paper_voice import pdf_utils, tts, simple_llm_enhancer
 except ImportError:
     # Fallback for direct execution
     import sys
     sys.path.append(str(Path(__file__).parent.parent))
-    from paper_voice.llm_math_explainer import (
-        explain_math_with_llm_sync, explain_figure_with_llm_sync,
-        explain_table_with_llm_sync, get_math_explanation_prompt
-    )
-    from paper_voice.latex_processor import extract_figures_and_tables, extract_latex_environments
-    from paper_voice.arxiv_downloader import download_arxiv_paper, ArxivPaper
-    from paper_voice import pdf_utils, tts
+    from paper_voice import pdf_utils, tts, simple_llm_enhancer
 
 
 def download_arxiv_pdf(arxiv_id: str, dest_path: str) -> Optional[str]:
@@ -361,8 +349,7 @@ def create_comprehensive_narration_script(content: str, input_type: str, api_key
     if uploaded_images:
         script_parts.append("Additional images were provided:")
         for i, img_file in enumerate(uploaded_images):
-            explanation = explain_figure_with_llm_sync(f"Uploaded image: {img_file.name}", api_key)
-            script_parts.append(explanation)
+            script_parts.append(f"Uploaded image: {img_file.name}")
     
     progress_bar.progress(100)
     update_progress("Script generation complete!")
