@@ -147,18 +147,38 @@ def main():
             if not content:
                 st.error("Please provide content first!")
             else:
-                with st.spinner("Enhancing content with LLM..."):
-                    # Use the package directly
-                    def progress_callback(message):
-                        if show_debug:
-                            st.info(f"📝 {message}")
-                    
-                    enhanced_script = simple_llm_enhancer.enhance_document_simple(
-                        content, api_key, progress_callback
-                    )
+                st.info(f"🔧 Processing {len(content)} chars with API key: {api_key[:10]}...")
                 
-                st.session_state['enhanced_script'] = enhanced_script
-                st.success("✅ Enhanced script generated!")
+                try:
+                    with st.spinner("Enhancing content with LLM..."):
+                        def progress_callback(message):
+                            st.info(f"📝 {message}")
+                        
+                        # Call the package function directly
+                        enhanced_script = simple_llm_enhancer.enhance_document_simple(
+                            content, api_key, progress_callback
+                        )
+                    
+                    # Success! Store the enhanced script
+                    st.session_state['enhanced_script'] = enhanced_script
+                    st.success("✅ Enhancement completed successfully!")
+                    st.code(f"Sample result: {enhanced_script[:300]}...")
+                    
+                except Exception as e:
+                    st.error(f"❌ ENHANCEMENT FAILED: {str(e)}")
+                    st.warning("⚠️ The original content will NOT be stored as 'enhanced'")
+                    
+                    # Show the error details
+                    if "Math expressions not converted" in str(e):
+                        st.error("The LLM failed to convert LaTeX math expressions")
+                    elif "API key" in str(e).lower():
+                        st.error("Check your OpenAI API key")
+                    elif "rate_limit" in str(e).lower():
+                        st.error("Rate limit hit - try again in a moment")
+                    
+                    # DO NOT store failed content
+                    if 'enhanced_script' in st.session_state:
+                        del st.session_state['enhanced_script']
         
         # Display enhanced script
         if 'enhanced_script' in st.session_state:

@@ -119,6 +119,14 @@ Convert this entire document into clear, natural audio narration text:"""
         
         if progress_callback:
             progress_callback(f"LLM response received: {len(result)} characters")
+        
+        # Validate that enhancement actually worked
+        if result == content:
+            raise Exception("LLM returned identical content - enhancement failed")
+        
+        # Check if math was actually converted
+        if ("\\(" in content or "\\[" in content) and ("\\(" in result or "\\[" in result):
+            raise Exception("Math expressions not converted - LaTeX still present in result")
             
         return result
         
@@ -134,12 +142,14 @@ Convert this entire document into clear, natural audio narration text:"""
             error_msg += f" (Token limit issue - content was {len(content)} chars)"
         elif "rate_limit" in str(e).lower():
             error_msg += " (Rate limit exceeded - try again in a moment)"
+        elif "authentication" in str(e).lower() or "api_key" in str(e).lower():
+            error_msg += " (API key issue - check your OpenAI key)"
         
         if progress_callback:
             progress_callback(f"Detailed error: {error_msg}")
         
-        # Return original content if enhancement fails
-        return content
+        # RAISE the error instead of hiding it
+        raise Exception(error_msg)
 
 
 def enhance_with_intelligent_chunking(content: str, api_key: str, progress_callback=None) -> str:
@@ -202,9 +212,9 @@ def enhance_with_intelligent_chunking(content: str, api_key: str, progress_callb
             
         except Exception as e:
             if progress_callback:
-                progress_callback(f"Warning: Failed to enhance chunk {i+1}: {str(e)}")
-            # Keep original chunk if enhancement fails
-            enhanced_chunks.append(chunk)
+                progress_callback(f"FATAL: Failed to enhance chunk {i+1}: {str(e)}")
+            # RAISE error instead of silently failing
+            raise Exception(f"Chunk enhancement failed for chunk {i+1}: {str(e)}")
     
     return '\n\n'.join(enhanced_chunks)
 
