@@ -16,7 +16,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from . import pdf_utils, tts
 from .arxiv_downloader import download_arxiv_paper
-from .llm_math_explainer import explain_math_with_llm_sync
 from .latex_processor import process_latex_document
 from .pdf_content_enhancer import enhance_pdf_content_with_llm
 from .vision_pdf_analyzer import analyze_pdf_with_vision, create_enhanced_text_from_analysis

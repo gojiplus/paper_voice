@@ -315,40 +315,17 @@ def process_inline_and_display_math(text: str, api_key: Optional[str] = None, us
     ]
     
     if use_llm and api_key:
-        # Use LLM for high-quality math explanations
+        # Use simple LLM enhancer for high-quality math explanations
         try:
-            from .llm_math_explainer import explain_math_with_llm_sync
+            from .simple_llm_enhancer import enhance_document_simple
             
-            # Process each math pattern
-            for pattern, math_type, flags in math_patterns:
-                def create_replacer(math_type):
-                    def replace_math_llm(match):
-                        content = match.group(1).strip()
-                        if not content:  # Skip empty expressions
-                            return match.group(0)
-                        
-                        # Get context around the expression for better explanation
-                        context_size = 200 if math_type == 'display' else 150
-                        start = max(0, match.start() - context_size)
-                        end = min(len(text), match.end() + context_size)
-                        context = text[start:end]
-                        
-                        try:
-                            explanation = explain_math_with_llm_sync(content, api_key, context)
-                            return f" {explanation.natural_explanation} "
-                        except Exception:
-                            # Fallback to basic conversion
-                            spoken = latex_math_to_speech(content)
-                            if math_type == 'display':
-                                return f"Display equation: {spoken}"
-                            else:
-                                return spoken
-                    return replace_math_llm
-                
-                text = re.sub(pattern, create_replacer(math_type), text, flags=flags)
+            # Use the simple LLM enhancer to process the entire text
+            # This will handle all math expressions at once
+            enhanced_text = enhance_document_simple(text, api_key)
+            return enhanced_text
             
-        except ImportError:
-            # Fall back to basic processing if LLM module not available
+        except Exception:
+            # Fall back to basic processing if LLM enhancement fails
             use_llm = False
     
     if not use_llm or not api_key:

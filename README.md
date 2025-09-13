@@ -1,18 +1,15 @@
 # Paper Voice
 
-Convert academic papers to high-quality audio narration with precise mathematical explanations, enhanced figure descriptions, and intelligent content processing.
+Convert academic papers to high-quality audio narration with precise mathematical explanations using a simplified LLM-powered approach.
 
 ## Features
 
-- 🧮 **Precise Math Explanations**: LLM-powered contextual explanations of mathematical expressions
-- 🖼️ **Enhanced Figure Descriptions**: AI-generated audio-friendly descriptions of figures and tables  
+- 🧮 **Natural Math Narration**: Professor-style explanations of mathematical expressions
 - 📄 **Multi-Format Support**: PDFs, LaTeX, Markdown, and plain text with math notation
-- 🔗 **ArXiv Integration**: Direct download and processing of LaTeX source with figures
-- ⚡ **Batch Processing**: Process multiple papers simultaneously with parallel execution
-- 🎯 **Selective Enhancement**: Preserves original text while enhancing only math, figures, and tables
+- 🎯 **Simple LLM Enhancement**: Single comprehensive prompt for natural audio conversion
 - 🗣️ **Multiple TTS Options**: OpenAI TTS (with chunking) or offline pyttsx3
-- 💻 **CLI & Web Interface**: Full command-line interface plus Streamlit web app
-- 👁️ **Vision Analysis**: Optional GPT-4V integration for superior PDF content extraction
+- 💻 **Web Interface**: Easy-to-use Streamlit web app
+- ⚡ **Intelligent Chunking**: Handles large documents with smart OpenAI API limits
 
 ## Installation
 
@@ -32,147 +29,173 @@ pip install -e .
 
 ## Usage
 
-### Command Line Interface
-
-Paper Voice includes a comprehensive CLI for batch processing and automation:
+### Web Interface (Recommended)
 
 ```bash
-# Single file processing
-paper_voice paper.pdf --api-key YOUR_KEY
-
-# Process arXiv paper
-paper_voice https://arxiv.org/abs/2301.12345 --api-key YOUR_KEY --output research.mp3
-
-# LaTeX file with custom voice
-paper_voice paper.tex --latex --api-key YOUR_KEY --voice nova
-
-# Vision-enhanced PDF analysis
-paper_voice paper.pdf --vision --api-key YOUR_KEY --output enhanced.mp3
-
-# Batch processing a directory
-paper_voice --batch papers/ --api-key YOUR_KEY --output-dir ./audio_output
-
-# Batch processing multiple files
-paper_voice --batch paper1.pdf paper2.pdf paper3.tex --api-key YOUR_KEY --output-dir ./batch_output
+streamlit run paper_voice/streamlit/app.py
 ```
 
-#### CLI Options
-
-- `--batch`: Enable batch processing for multiple files/directories
-- `--vision`: Use GPT-4V for enhanced PDF analysis
-- `--voice`: Choose TTS voice (alloy, echo, fable, onyx, nova, shimmer)
-- `--speed`: Adjust speech speed (0.25 to 4.0)
-- `--max-workers`: Set concurrent workers for batch processing (default: 3)
-- `--output-dir`: Output directory for batch processing
-- `--offline`: Use offline TTS instead of OpenAI TTS
-- `--no-enhancement`: Skip LLM enhancement for faster processing
-
-### Web Interface
-
-```bash
-streamlit run streamlit/app.py
-```
-
-Upload a PDF, LaTeX file, or enter text directly. For best results with mathematical content, provide an OpenAI API key to enable LLM-powered explanations.
+Upload a PDF, LaTeX file, or enter text directly. Provide an OpenAI API key for LLM-enhanced natural language conversion of mathematical expressions.
 
 ### Python API
 
+#### Simple Enhancement (New in v0.3.0)
+
 ```python
-from paper_voice import pdf_utils, math_to_speech
-from paper_voice.arxiv_downloader import download_arxiv_paper
+from paper_voice.simple_llm_enhancer import enhance_document_simple
 
-# Extract text from PDF
-pages = pdf_utils.extract_raw_text("paper.pdf")
-
-# Process mathematical expressions
-processed = math_to_speech.process_text_with_math(pages[0])
-print(processed)
-
-# Download from arXiv
-paper = download_arxiv_paper("2301.12345")
-if paper:
-    print(f"Downloaded: {paper.title}")
-    print(f"LaTeX content: {len(paper.latex_content)} characters")
+# Convert any academic content with math to natural language
+content = "The equation $E = mc^2$ represents energy-mass equivalence."
+enhanced = enhance_document_simple(content, api_key="your-openai-key")
+print(enhanced)
+# Output: "The equation energy equals mass times the speed of light squared represents energy-mass equivalence."
 ```
 
-## ✨ What's New in v0.2.0
+#### Complete Workflow
 
-### Precise Mathematical Explanations
-Instead of basic conversions like "alpha squared plus beta", Paper Voice now generates contextual explanations:
+```python
+from paper_voice import pdf_utils
+from paper_voice.simple_llm_enhancer import enhance_document_simple
+from paper_voice import tts
 
-**Before**: `$\alpha^2 + \beta = \gamma$` → "alpha squared plus beta equals gamma"
+# 1. Extract text from PDF
+pages = pdf_utils.extract_raw_text("paper.pdf")
+content = '\n\n'.join(pages)
 
-**After**: `$\alpha^2 + \beta = \gamma$` → "In machine learning context, this equation shows that the outcome gamma is determined by the sum of the learning rate alpha squared and the regularization parameter beta..."
+# 2. Enhance with LLM (converts math to natural language)
+enhanced_script = enhance_document_simple(content, api_key="your-openai-key")
 
-### Selective Enhancement
-- ✅ **Only enhances**: Math expressions, figure captions, table descriptions
-- ✅ **Preserves exactly**: All other academic text, structure, and content
-- ❌ **No summarization**: Original text remains unchanged
+# 3. Generate audio
+tts.synthesize_speech_chunked(
+    enhanced_script, 
+    "output.mp3", 
+    use_openai=True, 
+    api_key="your-openai-key"
+)
+```
 
-### Enhanced LaTeX Processing
-LaTeX files now get full LLM enhancement while preserving document structure:
-- Mathematical expressions → Contextual explanations
-- Figure captions → Audio-friendly descriptions  
-- Table content → Clear narration
-- Regular text → Preserved exactly as written
+#### LaTeX Processing
+
+```python
+from paper_voice.content_processor import process_content_unified
+
+latex_content = r"""
+\documentclass{article}
+\begin{document}
+The algorithm minimizes $J(\theta) = \frac{1}{2m}\sum_{i=1}^{m}(h_\theta(x^{(i)}) - y^{(i)})^2$.
+\end{document}
+"""
+
+processed = process_content_unified(
+    content=latex_content,
+    input_type='latex',
+    api_key='your-openai-key',
+    use_llm_enhancement=True
+)
+
+print(processed.enhanced_text)
+```
+
+## ✨ What's New in v0.3.0
+
+### Simplified LLM Architecture
+- **Single comprehensive prompt**: Handles all math conversion in one API call
+- **Professor-style narration**: Natural explanations instead of robotic "subscript" language
+- **Intelligent chunking**: Automatically handles large documents within OpenAI limits
+- **Better error handling**: Clear failures instead of silent returns
+
+### Natural Mathematical Explanations
+
+**Before**: `$p_C$` → "p subscript C"
+
+**After**: `$p_C$` → "p underscore capital C, the proportion of compliers"
+
+**Complex expressions**: 
+- `$F_{1C}$` → "F underscore one capital C, the outcome distribution for treated compliers"
+- `$E = mc^2$` → "energy equals mass times the speed of light squared"
+
+### Key API Changes
+- Main function: `simple_llm_enhancer.enhance_document_simple()`
+- Smart chunking for documents > 128K tokens
+- Single LLM call for most documents
+- Professor-style math conversion prompt
 
 ## Requirements
 
 - Python 3.9+ (excluding 3.9.7)
-- OpenAI API key (optional but recommended for enhanced explanations)
-- ffmpeg (for audio processing)
+- OpenAI API key (required for LLM enhancement)
+- pydub (for audio chunking)
+- PyPDF2 or PyMuPDF (for PDF processing)
 
-## Advanced Features
-
-### Batch Processing
-
-Process multiple papers efficiently with parallel processing:
+### Optional Dependencies
 
 ```bash
-# Process all PDFs in a directory
-paper_voice --batch research_papers/ --api-key YOUR_KEY --output-dir audio_papers/
+# For better PDF processing
+pip install PyMuPDF
 
-# Process specific files with custom settings
-paper_voice --batch paper1.pdf paper2.tex paper3.pdf \
-  --api-key YOUR_KEY \
-  --output-dir batch_output/ \
-  --max-workers 5 \
-  --voice nova \
-  --vision
+# For offline TTS
+pip install pyttsx3
+
+# For audio format conversion
+# Install ffmpeg via your system package manager
 ```
 
-### ArXiv Integration
+## Architecture
 
-Download and process papers directly from arXiv:
+Paper Voice uses a clean modular pipeline:
 
-```bash
-# Single arXiv paper
-paper_voice https://arxiv.org/abs/2301.12345 --api-key YOUR_KEY
+**PDF → LaTeX/Markdown → LLM Enhancement → TTS**
 
-# Multiple arXiv papers
-paper_voice --batch \
-  https://arxiv.org/abs/2301.12345 \
-  https://arxiv.org/abs/2302.67890 \
-  --api-key YOUR_KEY \
-  --output-dir arxiv_audio/
-```
-
-### Vision-Enhanced PDF Analysis
-
-Use GPT-4V for superior content extraction:
-
-```bash
-paper_voice complex_paper.pdf --vision --api-key YOUR_KEY
-```
+1. **PDF Extraction**: Extract text with `pdf_utils.extract_raw_text()`
+2. **LLM Enhancement**: Convert math to natural language with `simple_llm_enhancer.enhance_document_simple()`  
+3. **Audio Generation**: Create audio with `tts.synthesize_speech_chunked()`
 
 ## Examples
 
-See the `demos/` directory for usage examples:
-- `demos/basic_usage.py` - Simple math processing examples
-- `demos/before_after_comparison.py` - Shows improvement from LLM explanations
+### Basic Usage
 
-See the `tests/` directory for comprehensive test cases including batch processing tests.
+```python
+from paper_voice.simple_llm_enhancer import enhance_document_simple
 
-## Contributing
+# Simple math conversion
+text = "The learning rate α controls convergence of $\\theta^* = \\arg\\min J(\\theta)$."
+enhanced = enhance_document_simple(text, "your-api-key")
+# Result: Natural professor-style explanation of the math
+```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines and how to contribute to the project.
+### With Progress Tracking
+
+```python
+def progress_callback(message):
+    print(f"Progress: {message}")
+
+enhanced = enhance_document_simple(
+    content, 
+    api_key, 
+    progress_callback=progress_callback
+)
+```
+
+### Large Document Handling
+
+The system automatically handles large documents:
+- Documents < 128K tokens: Single LLM call
+- Documents > 128K tokens: Intelligent chunking with natural breakpoints
+
+## Configuration
+
+Set your OpenAI API key:
+
+```bash
+export OPENAI_API_KEY="your-key-here"
+```
+
+Or pass it directly to functions:
+
+```python
+enhanced = enhance_document_simple(content, api_key="your-key")
+```
+
+## License
+
+MIT License - see LICENSE file for details.

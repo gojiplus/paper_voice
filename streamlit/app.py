@@ -44,7 +44,6 @@ def extract_pdf_content(pdf_path: str) -> str:
         return f"Error extracting PDF content: {str(e)}"
 
 
-# Using package directly instead of local function
 
 
 def create_audio_from_text(text: str, output_path: str, voice: str = "alloy", 
