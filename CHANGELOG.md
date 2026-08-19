@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## Unreleased
 
 ### Fixed
 
@@ -38,9 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   reusable CI/docs/release workflows, and PyPI trusted publishing.
 - Minimum supported Python is now 3.11.
 
-## [0.3.0]
+## 0.3.0
 
-- Initial released version tracked in this changelog.
-
-[Unreleased]: https://github.com/gojiplus/paper_voice/compare/v0.3.0...HEAD
-[0.3.0]: https://github.com/gojiplus/paper_voice/releases/tag/v0.3.0
+Published to PyPI. The repository carries no `v0.3.0` tag — releases before
+the py-canon adoption were cut by hand, so there is nothing to link to here.

@@ -86,6 +86,18 @@ convention = "google"
 "src/paper_voice/cli.py" = ["T201"]
 "demos/**" = ["T20"]
 
+[tool.preen]
+# lychee truncates an f-string URL at the brace, so the arXiv API bases are
+# extracted as bare paths that 404 by construction; the IDs in the arXiv tests
+# are deliberately fake. The Pages site 404s until the first docs deploy from
+# main, which cannot happen until this adoption lands.
+# The patterns omit the scheme on purpose: lychee scans this file too, and a
+# pattern written with one is itself extracted as a (dead) link.
+link_ignore = [
+    "arxiv\\.org/(e-print|abs)/",
+    "gojiplus\\.github\\.io/paper_voice",
+]
+
 [tool.codespell]
 # "complier"/"compliers" are the econometrics terms (LATE compliers), not
 # "compiler"; "multline" and "oint" are LaTeX names (\begin{multline}, \oint).
@@ -105,5 +117,18 @@ exclude = '\.venv|tests|docs'
 
 
 [dependency-groups]
-docs = ["sphinx>=8", "furo", "myst-parser", "sphinx-copybutton", "py-canon @ git+https://github.com/gojiplus/py-canon@v1"]
-dev = ["ruff>=0.14", "pyright>=1.1.390", "pydoclint>=0.5", "pytest>=8"]
+dev = [
+    "ruff>=0.14",
+    "pyright>=1.1.390",
+    "pydoclint>=0.5",
+    "pre-commit>=4",
+    { include-group = "test" },
+]
+test = ["pytest>=8", "pytest-cov>=6"]
+docs = [
+    "sphinx>=8",
+    "furo",
+    "myst-parser",
+    "sphinx-copybutton",
+    "py-canon @ git+https://github.com/gojiplus/py-canon@v1",
+]
