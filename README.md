@@ -3,7 +3,8 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/paper_voice.svg)](https://pypi.org/project/paper_voice/)
 [![Downloads](https://static.pepy.tech/badge/paper_voice)](https://pepy.tech/project/paper_voice)
-[![Python application](https://github.com/gojiplus/paper_voice/actions/workflows/main.yml/badge.svg)](https://github.com/gojiplus/paper_voice/actions/workflows/main.yml)
+[![CI](https://github.com/gojiplus/paper_voice/actions/workflows/ci.yml/badge.svg)](https://github.com/gojiplus/paper_voice/actions/workflows/ci.yml)
+[![Docs](https://github.com/gojiplus/paper_voice/actions/workflows/docs.yml/badge.svg)](https://github.com/gojiplus/paper_voice/actions/workflows/docs.yml)
 
 Convert academic papers to high-quality audio narration with precise mathematical explanations using a simplified LLM-powered approach.
 
@@ -67,17 +68,14 @@ from paper_voice import tts
 
 # 1. Extract text from PDF
 pages = pdf_utils.extract_raw_text("paper.pdf")
-content = '\n\n'.join(pages)
+content = "\n\n".join(pages)
 
 # 2. Enhance with LLM (converts math to natural language)
 enhanced_script = enhance_document_simple(content, api_key="your-openai-key")
 
 # 3. Generate audio
 tts.synthesize_speech_chunked(
-    enhanced_script, 
-    "output.mp3", 
-    use_openai=True, 
-    api_key="your-openai-key"
+    enhanced_script, "output.mp3", use_openai=True, api_key="your-openai-key"
 )
 ```
 
@@ -95,9 +93,9 @@ The algorithm minimizes $J(\theta) = \frac{1}{2m}\sum_{i=1}^{m}(h_\theta(x^{(i)}
 
 processed = process_content_unified(
     content=latex_content,
-    input_type='latex',
-    api_key='your-openai-key',
-    use_llm_enhancement=True
+    input_type="latex",
+    api_key="your-openai-key",
+    use_llm_enhancement=True,
 )
 
 print(processed.enhanced_text)
@@ -132,7 +130,7 @@ print(processed.enhanced_text)
 - Python 3.9+ (excluding 3.9.7)
 - OpenAI API key (required for LLM enhancement)
 - pydub (for audio chunking)
-- PyPDF2 or PyMuPDF (for PDF processing)
+- pypdf or PyMuPDF (for PDF processing)
 
 ### Optional Dependencies
 
@@ -165,7 +163,9 @@ Paper Voice uses a clean modular pipeline:
 from paper_voice.simple_llm_enhancer import enhance_document_simple
 
 # Simple math conversion
-text = "The learning rate α controls convergence of $\\theta^* = \\arg\\min J(\\theta)$."
+text = (
+    "The learning rate α controls convergence of $\\theta^* = \\arg\\min J(\\theta)$."
+)
 enhanced = enhance_document_simple(text, "your-api-key")
 # Result: Natural professor-style explanation of the math
 ```
@@ -176,10 +176,9 @@ enhanced = enhance_document_simple(text, "your-api-key")
 def progress_callback(message):
     print(f"Progress: {message}")
 
+
 enhanced = enhance_document_simple(
-    content, 
-    api_key, 
-    progress_callback=progress_callback
+    content, api_key, progress_callback=progress_callback
 )
 ```
 

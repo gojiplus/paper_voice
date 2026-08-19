@@ -1,0 +1,13 @@
+# Managed by copier — records template version for `copier update`. Do not edit.
+_commit: v1.1.0
+_src_path: gh:gojiplus/py-canon
+author_email: gsood07@gmail.com
+author_name: Gaurav Sood
+coverage_floor: 45
+default_branch: main
+description: Convert academic papers to high-quality audio with precise mathematical
+    explanations and intelligent content processing
+needs_cli: true
+org: gojiplus
+package_name: paper_voice
+project_name: paper_voice

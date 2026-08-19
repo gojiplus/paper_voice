@@ -1,29 +1,28 @@
-"""
-LLM‑powered summarisation for figures and tables.
+"""LLM-powered summarisation for figures and tables.
 
 This module defines helper functions that invoke the OpenAI API to
 generate brief, descriptive summaries for figure and table content.  The
 summariser is optional: if no API key is supplied the raw caption or
 table text will be returned unmodified.  These helpers are thin
-wrappers; higher‑level code should cache results appropriately if
+wrappers; higher-level code should cache results appropriately if
 multiple captions are repeated.
 """
 
 from __future__ import annotations
 
 import os
-from typing import List, Optional
 
 try:
     from openai import OpenAI
+
     openai_available = True
-except ImportError:
+except ImportError:  # pragma: no cover
     # Allow import even if openai is not installed; functions will check
-    OpenAI = None  # type: ignore
+    OpenAI = None
     openai_available = False
 
 
-def _ensure_api_key(api_key: Optional[str]) -> str:
+def _ensure_api_key(api_key: str | None) -> str:
     """Return a valid OpenAI API key or raise an error.
 
     This helper first checks the provided argument; if missing, it falls
@@ -36,30 +35,29 @@ def _ensure_api_key(api_key: Optional[str]) -> str:
     return key
 
 
-def summarise_caption(caption: str, kind: str = "figure", api_key: Optional[str] = None) -> str:
+def summarise_caption(
+    caption: str, kind: str = "figure", api_key: str | None = None
+) -> str:
     """Generate a concise summary for a figure or table caption using OpenAI.
 
-    Parameters
-    ----------
-    caption: str
-        The raw caption text extracted from the PDF.
-    kind: str, optional
-        Either ``"figure"`` or ``"table"``; used to inform the prompt.
-    api_key: str, optional
-        An OpenAI API key. If not provided, ``OPENAI_API_KEY`` from the
-        environment will be used. If neither is available, the input
-        caption is returned unchanged.
+    Args:
+        caption: The raw caption text extracted from the PDF. Blank
+            captions are returned as-is without calling the API.
+        kind: Either ``"figure"`` or ``"table"``; interpolated into the
+            prompt so the model knows what it is describing.
+        api_key: An OpenAI API key. If not provided, ``OPENAI_API_KEY``
+            from the environment will be used. If neither is available,
+            the input caption is returned unchanged.
 
-    Returns
-    -------
-    str
-        A summary suitable for reading aloud. If summarisation fails,
-        returns the original caption.
+    Returns:
+        A one- or two-sentence summary suitable for reading aloud. If the
+        ``openai`` package is missing, no key is available, or the request
+        fails, the original caption is returned.
     """
     if not caption.strip():
         return caption
     # Use fallback if openai or API key missing
-    if not openai_available:
+    if not openai_available or OpenAI is None:
         return caption
     try:
         key = _ensure_api_key(api_key)
@@ -80,33 +78,34 @@ def summarise_caption(caption: str, kind: str = "figure", api_key: Optional[str]
             temperature=0.5,
             max_tokens=100,
         )
-        summary = response.choices[0].message.content.strip()
-        return summary
+        message = response.choices[0].message.content
+        if message is None:
+            # No usable completion: same fallback as the handler below.
+            return caption
+        return message.strip()
     except Exception:
         # Gracefully fall back to the original caption
         return caption
 
 
-def summarise_table(rows: List[str], api_key: Optional[str] = None) -> str:
+def summarise_table(rows: list[str], api_key: str | None = None) -> str:
     """Generate a summary description of tabular content using OpenAI.
 
-    Parameters
-    ----------
-    rows: List[str]
-        A list of strings, each representing a row of the table. Column
-        delimiters are preserved.
-    api_key: str, optional
-        OpenAI API key. Same behaviour as ``summarise_caption``.
+    Args:
+        rows: One string per table row, with column delimiters preserved.
+            They are joined with newlines before being sent to the model.
+        api_key: OpenAI API key. Same behaviour as ``summarise_caption``:
+            falls back to ``OPENAI_API_KEY`` from the environment.
 
-    Returns
-    -------
-    str
-        A summary of the table content, intended for audio narration. If
-        summarisation fails, returns a concatenated string of the rows.
+    Returns:
+        A summary of the table content, intended for audio narration. An
+        empty ``rows`` list yields an empty string; if the ``openai``
+        package is missing, no key is available, or the request fails, the
+        rows are returned joined by spaces.
     """
     if not rows:
         return ""
-    if not openai_available:
+    if not openai_available or OpenAI is None:
         return " ".join(rows)
     try:
         key = _ensure_api_key(api_key)
@@ -129,18 +128,21 @@ def summarise_table(rows: List[str], api_key: Optional[str] = None) -> str:
             temperature=0.5,
             max_tokens=150,
         )
-        summary = response.choices[0].message.content.strip()
-        return summary
+        message = response.choices[0].message.content
+        if message is None:
+            # No usable completion: same fallback as the handler below.
+            return " ".join(rows)
+        return message.strip()
     except Exception:
         return " ".join(rows)
 
 
 # American spelling aliases for compatibility
-def summarize_figure_with_llm(caption: str, api_key: Optional[str] = None) -> str:
+def summarize_figure_with_llm(caption: str, api_key: str | None = None) -> str:
     """American spelling alias for summarise_caption with figure type."""
     return summarise_caption(caption, kind="figure", api_key=api_key)
 
 
-def summarize_table_with_llm(caption: str, api_key: Optional[str] = None) -> str:
+def summarize_table_with_llm(caption: str, api_key: str | None = None) -> str:
     """American spelling alias for summarise_caption with table type."""
     return summarise_caption(caption, kind="table", api_key=api_key)
