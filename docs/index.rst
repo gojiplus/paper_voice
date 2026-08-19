@@ -1,16 +1,7 @@
 Paper Voice Documentation
-========================
+=========================
 
 Paper Voice converts academic papers to high-quality audio narration with precise mathematical explanations using a simplified LLM-powered approach.
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
-   installation
-   quickstart
-   api
-   examples
 
 Installation
 ------------
@@ -45,11 +36,11 @@ Basic usage with the simplified API:
    )
 
 Web Interface
------------
+-------------
 
 .. code-block:: bash
 
-   streamlit run paper_voice/streamlit/app.py
+   streamlit run streamlit/app.py
 
 Key Features
 ============

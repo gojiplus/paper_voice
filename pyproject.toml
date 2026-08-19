@@ -1,40 +1,27 @@
 [build-system]
-requires = ["setuptools>=42", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["uv_build>=0.12.5,<0.13"]
+build-backend = "uv_build"
 
 [project]
 name = "paper_voice"
 version = "0.3.0"
 description = "Convert academic papers to high-quality audio with precise mathematical explanations and intelligent content processing"
 readme = "README.md"
-requires-python = ">=3.9,!=3.9.7"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
 authors = [
     {name = "Gaurav Sood", email = "gsood07@gmail.com"}
 ]
 dependencies = [
     "streamlit>=1.30.0",
-    "PyPDF2>=3.0.1",
+    "pypdf>=6.1",
     "pyttsx3>=2.90",
     "regex>=2024.2.2",
     "pydub>=0.25.1",
     "openai>=1.0.0",
     "PyMuPDF>=1.23.0",
     "requests>=2.31.0"
-]
-
-[project.optional-dependencies]
-test = [
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
-    "pytest-mock>=3.10.0"
-]
-dev = [
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0", 
-    "pytest-mock>=3.10.0",
-    "black>=23.0.0",
-    "flake8>=6.0.0",
-    "mypy>=1.0.0"
 ]
 
 [project.urls]
@@ -45,9 +32,6 @@ documentation = "https://gojiplus.github.io/paper_voice"
 [project.scripts]
 paper_voice = "paper_voice.cli:cli_entry_point"
 
-[tool.setuptools.packages.find]
-where = ["."]
-
 [tool.pytest.ini_options]
 minversion = "7.0"
 addopts = "-ra -q --strict-markers"
@@ -56,31 +40,6 @@ markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests"
 ]
-
-[tool.black]
-line-length = 88
-target-version = ['py39']
-include = '\.pyi?$'
-extend-exclude = '''
-/(
-  # directories
-  \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | build
-  | dist
-)/
-'''
-
-[tool.mypy]
-python_version = "3.9"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = false
-ignore_missing_imports = true
 
 [tool.coverage.run]
 source = ["paper_voice"]
@@ -101,3 +60,50 @@ exclude_lines = [
     "if 0:",
     "if __name__ == .__main__.:"
 ]
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+external = ["DOC"]
+select = [
+    "E", "W", "F", "I", "B", "C4", "UP", "N", "D", "S", "SIM", "T20", "PT", "RUF",
+    "PTH", "RET", "PIE", "FURB", "PERF", "DTZ", "LOG", "G", "TC", "FLY",
+    "RSE", "SLOT", "FA", "A", "EXE", "ICN", "PGH", "PLE", "ARG", "SLF",
+]
+# D203/D213: the google convention the fleet standard picks. W191/D206/D300:
+# ruff's own docs list these as always incompatible with `ruff format`, which
+# the standard also runs.
+ignore = ["D203", "D213", "W191", "D206", "D300"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "D", "ARG", "SLF"]
+"docs/**" = ["D"]
+# print() is the user-facing output channel for the CLI and the demo scripts.
+"src/paper_voice/cli.py" = ["T201"]
+"demos/**" = ["T20"]
+
+[tool.codespell]
+# "complier"/"compliers" are the econometrics terms (LATE compliers), not
+# "compiler"; "multline" and "oint" are LaTeX names (\begin{multline}, \oint).
+ignore-words-list = "complier,compliers,multline,oint"
+
+[tool.pyright]
+include = ["src"]
+typeCheckingMode = "standard"
+
+[tool.pydoclint]
+style = "google"
+arg-type-hints-in-docstring = false
+check-return-types = false
+check-class-attributes = false
+allow-init-docstring = true
+exclude = '\.venv|tests|docs'
+
+
+[dependency-groups]
+docs = ["sphinx>=8", "furo", "myst-parser", "sphinx-copybutton", "py-canon @ git+https://github.com/gojiplus/py-canon@v1"]
+dev = ["ruff>=0.14", "pyright>=1.1.390", "pydoclint>=0.5", "pytest>=8"]
