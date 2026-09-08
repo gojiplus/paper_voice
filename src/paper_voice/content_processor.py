@@ -120,7 +120,9 @@ def process_content_unified(
                 )
 
             try:
-                enhanced_text = fix_pdf_extraction_issues(content, api_key)
+                enhanced_text = fix_pdf_extraction_issues(
+                    content, api_key, progress_callback=progress_callback
+                )
                 if progress_callback:
                     progress_callback(
                         f"PDF extraction fix complete: {len(enhanced_text)} characters"
