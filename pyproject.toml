@@ -9,7 +9,7 @@ description = "Convert academic papers to high-quality audio with precise mathem
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 authors = [
     {name = "Gaurav Sood", email = "gsood07@gmail.com"}
 ]
@@ -62,7 +62,7 @@ exclude_lines = [
 ]
 [tool.ruff]
 line-length = 88
-target-version = "py311"
+target-version = "py312"
 
 [tool.ruff.lint]
 external = ["DOC"]
