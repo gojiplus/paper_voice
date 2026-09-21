@@ -18,7 +18,7 @@ dependencies = [
     "pypdf>=6.1",
     "pyttsx3>=2.90",
     "regex>=2024.2.2",
-    "pydub>=0.25.1",
+    "pydub-ng>=0.2.0",
     "openai>=1.0.0",
     "PyMuPDF>=1.23.0",
     "requests>=2.31.0"
@@ -34,11 +34,18 @@ paper_voice = "paper_voice.cli:cli_entry_point"
 
 [tool.pytest.ini_options]
 minversion = "7.0"
-addopts = "-ra -q --strict-markers"
+addopts = "-ra -q --strict-markers --strict-config"
 testpaths = ["tests"]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests"
+]
+log_level = "INFO"
+xfail_strict = true
+filterwarnings = [
+    "error",
+    "ignore:'audioop' is deprecated and slated for removal in Python 3.13:DeprecationWarning",
+    "ignore:Couldn't find ffmpeg or avconv - defaulting to ffmpeg, but may not work:RuntimeWarning:pydub\\.utils",
 ]
 
 [tool.coverage.run]
