@@ -106,6 +106,7 @@ link_ignore = [
 ]
 
 [tool.codespell]
+builtin = "clear,rare,en-GB_to_en-US"
 # "complier"/"compliers" are the econometrics terms (LATE compliers), not
 # "compiler"; "multline" and "oint" are LaTeX names (\begin{multline}, \oint).
 ignore-words-list = "complier,compliers,multline,oint"

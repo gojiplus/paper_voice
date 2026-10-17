@@ -236,7 +236,7 @@ def download_arxiv_paper(arxiv_id_or_url: str) -> ArxivPaper | None:
 
     Returns:
         An :class:`ArxivPaper` with the merged LaTeX source, figure files,
-        and parsed metadata, or None if the identifier is unrecognised, the
+        and parsed metadata, or None if the identifier is unrecognized, the
         download failed, or no LaTeX file was found in the source.
     """
     # Extract arXiv ID
