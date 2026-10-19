@@ -308,7 +308,7 @@ class TestVisionAnalysis:
 class TestPDFToImages:
     """Test PDF to images conversion (would require PyMuPDF)."""
 
-    @patch("paper_voice.vision_pdf_analyzer.fitz")
+    @patch("paper_voice.vision_pdf_analyzer.pymupdf")
     def test_pdf_to_images_success(self, mock_fitz):
         """Test successful PDF to images conversion."""
         # Mock PyMuPDF objects (MagicMock: the code indexes doc[page_num])
