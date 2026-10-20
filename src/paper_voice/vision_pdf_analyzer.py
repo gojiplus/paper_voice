@@ -11,11 +11,11 @@ from dataclasses import dataclass
 logger = logging.getLogger(__name__)
 
 try:
-    import fitz  # PyMuPDF
+    import pymupdf  # PyMuPDF
 
     PYMUPDF_AVAILABLE = True
 except ImportError:  # pragma: no cover
-    fitz = None
+    pymupdf = None
     PYMUPDF_AVAILABLE = False
 
 try:
@@ -62,7 +62,7 @@ class PDFAnalysisResult:
 
 def pdf_to_images(pdf_path: str, dpi: int = 150) -> list[bytes]:
     """Convert PDF pages to PNG images."""
-    if not PYMUPDF_AVAILABLE or fitz is None:
+    if not PYMUPDF_AVAILABLE or pymupdf is None:
         raise RuntimeError(
             "PyMuPDF is required for PDF to image conversion. "
             "Install with: pip install PyMuPDF"
@@ -71,13 +71,13 @@ def pdf_to_images(pdf_path: str, dpi: int = 150) -> list[bytes]:
     images = []
 
     try:
-        doc = fitz.open(pdf_path)
+        doc = pymupdf.open(pdf_path)
 
         for page_num in range(doc.page_count):
             page = doc[page_num]
 
             # Render page to image
-            mat = fitz.Matrix(dpi / 72, dpi / 72)
+            mat = pymupdf.Matrix(dpi / 72, dpi / 72)
             pix = page.get_pixmap(matrix=mat)
 
             # Convert to PNG bytes

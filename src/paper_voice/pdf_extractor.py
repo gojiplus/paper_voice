@@ -17,9 +17,9 @@ except ImportError:  # pragma: no cover
     PdfReader = None
 
 try:
-    import fitz  # PyMuPDF - better for complex PDFs
+    import pymupdf  # PyMuPDF - better for complex PDFs
 except ImportError:  # pragma: no cover
-    fitz = None
+    pymupdf = None
 
 
 @dataclass
@@ -39,7 +39,7 @@ class PDFExtractor:
     def __init__(self):
         """Initialize the extractor and detect available PDF backends."""
         self.available_extractors = []
-        if fitz is not None:
+        if pymupdf is not None:
             self.available_extractors.append("pymupdf")
         if PdfReader is not None:
             self.available_extractors.append("pypdf2")
@@ -64,7 +64,7 @@ class PDFExtractor:
         if method is None:
             method = self.available_extractors[0] if self.available_extractors else None
 
-        if method == "pymupdf" and fitz is not None:
+        if method == "pymupdf" and pymupdf is not None:
             return self._extract_with_pymupdf(pdf_path)
         if method == "pypdf2" and PdfReader is not None:
             return self._extract_with_pypdf2(pdf_path)
@@ -75,9 +75,9 @@ class PDFExtractor:
 
     def _extract_with_pymupdf(self, pdf_path: str) -> ExtractedDocument:
         """Extract using PyMuPDF (better for complex layouts)."""
-        if fitz is None:  # pragma: no cover - guarded by extract_document
+        if pymupdf is None:  # pragma: no cover - guarded by extract_document
             raise RuntimeError("PyMuPDF is not installed.")
-        doc = fitz.open(pdf_path)
+        doc = pymupdf.open(pdf_path)
         content_parts = []
         figures = []
         tables = []
