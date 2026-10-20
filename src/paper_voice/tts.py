@@ -1,4 +1,4 @@
-"""Abstractions for synthesising speech from text.
+"""Abstractions for synthesizing speech from text.
 
 This module exposes a simple API over two different TTS backends:
 
@@ -201,7 +201,7 @@ def synthesize_speech(
             etc. If empty, the default voice is used.
         rate: Words per minute for offline synthesis. Typical values are
             150-250.
-        use_openai: If true, attempts to synthesise via the OpenAI API.
+        use_openai: If true, attempts to synthesize via the OpenAI API.
             Requires the ``openai`` package and a valid API key. The output
             format will always be MP3 in this mode.
         api_key: The OpenAI API key to use. If not provided, uses the

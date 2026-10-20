@@ -66,8 +66,10 @@ def summarise_caption(
     try:
         client = OpenAI(api_key=key)
         prompt = (
+            # codespell:ignore-next-line specialised
             f"You are a helpful assistant specialised in converting {kind} captions "
             "from academic papers into concise descriptions suitable for audio. "
+            # codespell:ignore-next-line summarise
             "Summarise the following caption in one or two sentences, focusing on what "
             "the figure or table conveys: \n\n"
             f"Caption: {caption.strip()}"
@@ -94,7 +96,7 @@ def summarise_table(rows: list[str], api_key: str | None = None) -> str:
     Args:
         rows: One string per table row, with column delimiters preserved.
             They are joined with newlines before being sent to the model.
-        api_key: OpenAI API key. Same behaviour as ``summarise_caption``:
+        api_key: OpenAI API key. Same behavior as ``summarise_caption``:
             falls back to ``OPENAI_API_KEY`` from the environment.
 
     Returns:
@@ -117,6 +119,7 @@ def summarise_table(rows: list[str], api_key: str | None = None) -> str:
         table_text = "\n".join(rows)
         prompt = (
             "You are an assistant that converts tables from academic papers into brief "
+            # codespell:ignore-next-line summarise
             "spoken descriptions. Summarise the following table by describing what "
             "information it contains, patterns, and any notable relationships. "
             "Do not read every cell individually.\n\n"
