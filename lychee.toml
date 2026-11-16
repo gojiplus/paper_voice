@@ -1,0 +1,11 @@
+# Patterns are written without a scheme: preen's links check scans this file
+# too, and a pattern with one would be extracted and checked as a link.
+
+# lychee truncates an f-string URL at the brace, so the arXiv API bases are
+# extracted as bare paths that 404 by construction; the IDs in the arXiv tests
+# are deliberately fake. The Pages site 404s until the first docs deploy from
+# main.
+exclude = [
+  'arxiv\.org/(e-print|abs)/',
+  'gojiplus\.github\.io/paper_voice',
+]
