@@ -93,18 +93,6 @@ convention = "google"
 "src/paper_voice/cli.py" = ["T201"]
 "demos/**" = ["T20"]
 
-[tool.preen]
-# lychee truncates an f-string URL at the brace, so the arXiv API bases are
-# extracted as bare paths that 404 by construction; the IDs in the arXiv tests
-# are deliberately fake. The Pages site 404s until the first docs deploy from
-# main, which cannot happen until this adoption lands.
-# The patterns omit the scheme on purpose: lychee scans this file too, and a
-# pattern written with one is itself extracted as a (dead) link.
-link_ignore = [
-    "arxiv\\.org/(e-print|abs)/",
-    "gojiplus\\.github\\.io/paper_voice",
-]
-
 [tool.codespell]
 builtin = "clear,rare,en-GB_to_en-US"
 # "complier"/"compliers" are the econometrics terms (LATE compliers), not
