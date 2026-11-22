@@ -11,7 +11,7 @@ license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.12"
 authors = [
-    {name = "Gaurav Sood", email = "gsood07@gmail.com"}
+    {name = "Gaurav Sood"}
 ]
 dependencies = [
     "streamlit>=1.30.0",
