@@ -17,10 +17,10 @@ dependencies = [
     "streamlit>=1.30.0",
     "pypdf>=6.1",
     "pyttsx3>=2.90",
-    "regex>=2024.2.2",
+    "regex>=2024.9.11",
     "pydub-ng>=0.2.0",
     "openai>=1.0.0",
-    "PyMuPDF>=1.23.0",
+    "PyMuPDF>=1.24.11",
     "requests>=2.31.0"
 ]
 
