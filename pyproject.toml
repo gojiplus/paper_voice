@@ -20,7 +20,7 @@ dependencies = [
     "regex>=2024.9.11",
     "pydub-ng>=0.2.0",
     "openai>=1.0.0",
-    "PyMuPDF>=1.25.0",
+    "PyMuPDF>=1.26.7",
     "requests>=2.31.0"
 ]
 
