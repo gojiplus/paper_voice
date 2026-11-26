@@ -1066,12 +1066,12 @@ test = [
 requires-dist = [
     { name = "openai", specifier = ">=1.0.0" },
     { name = "pydub-ng", specifier = ">=0.2.0" },
-    { name = "pymupdf", specifier = ">=1.23.0" },
+    { name = "pymupdf", specifier = ">=1.26.7" },
     { name = "pypdf", specifier = ">=6.1" },
     { name = "pyttsx3", specifier = ">=2.90" },
-    { name = "regex", specifier = ">=2024.2.2" },
+    { name = "regex", specifier = ">=2024.9.11" },
     { name = "requests", specifier = ">=2.31.0" },
-    { name = "streamlit", specifier = ">=1.30.0" },
+    { name = "streamlit", specifier = ">=1.36.0" },
 ]
 
 [package.metadata.requires-dev]
