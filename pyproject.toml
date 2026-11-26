@@ -14,7 +14,7 @@ authors = [
     {name = "Gaurav Sood"}
 ]
 dependencies = [
-    "streamlit>=1.30.0",
+    "streamlit>=1.36.0",
     "pypdf>=6.1",
     "pyttsx3>=2.90",
     "regex>=2024.9.11",
