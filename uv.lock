@@ -1066,7 +1066,7 @@ test = [
 requires-dist = [
     { name = "openai", specifier = ">=1.0.0" },
     { name = "pydub-ng", specifier = ">=0.2.0" },
-    { name = "pymupdf", specifier = ">=1.24.11" },
+    { name = "pymupdf", specifier = ">=1.25.0" },
     { name = "pypdf", specifier = ">=6.1" },
     { name = "pyttsx3", specifier = ">=2.90" },
     { name = "regex", specifier = ">=2024.9.11" },
